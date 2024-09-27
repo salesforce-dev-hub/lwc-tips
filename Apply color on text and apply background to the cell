@@ -1,0 +1,43 @@
+Apply color on text and apply background to the cell based on different value in a field of the column in standard Datatable
+
+const columns = [
+    { label: 'Order Number', fieldName: 'OrderNumber' },
+    { label: 'Order Date', fieldName: 'EffectiveDate' },
+    { label: 'Amount', fieldName: 'Amount__c' },
+    { label: 'Account Name', fieldName: 'AccountName' },
+    { label: 'Status', fieldName: 'Status' ,cellAttributes: {
+        style: { fieldName: 'statusColor' } 
+    }},
+];
+
+if (item.Status  == 'Order Picked Up') {
+                    return {
+                        ...item,
+                        AccountName: item.Account.Name,
+                        statusColor : 'color: green',
+                    };
+                } else if (item.Status == 'Order Placed') {
+                    return {
+                        ...item,
+                        AccountName: item.Account.Name,
+                        statusColor : 'color: green ; background-color : rgb(182, 255, 182)',
+                    };
+                } else if (item.Status == 'Cancelled') {
+                    return {
+                        ...item,
+                        AccountName: item.Account.Name,
+                        statusColor : 'color: red',
+                    };
+                } else if (item.Status == 'Delivered') {
+                    return {
+                        ...item,
+                        AccountName: item.Account.Name,
+                        statusColor : 'color: green',
+                    };
+                } else{
+                        return {
+                        ...item,
+                        AccountName: item.Account.Name,
+                        statusColor : 'color: orange',
+                    };
+                }
