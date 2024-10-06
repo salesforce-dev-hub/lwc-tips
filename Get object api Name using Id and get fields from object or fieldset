@@ -1,0 +1,80 @@
+Get ObjectApiName from the Id:
+
+Id myId = '001dL00000NxFFaQAN';
+Schema.SObjectType sobjectType = myId.getSObjectType();
+String sobjectName = sobjectType.getDescribe().getName();
+System.debug(sobjectName);
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Get Related child objectApiName:
+
+String objectName = 'Account';
+List<String> childObjectNames = new List<String>();
+Schema.SObjectType sObjectType = Schema.getGlobalDescribe().get(objectName);
+Schema.DescribeSObjectResult describeSObjectResult = sObjectType.getDescribe();
+
+for (Schema.ChildRelationship cr : describeSObjectResult.getChildRelationships()) {
+    childObjectNames.add(String.valueof(cr.getChildSObject()));
+    System.debug(cr.getChildSObject());
+}
+System.debug(childObjectNames);
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+For getting all fields :
+
+Map <String,Schema.SObjectType> gd = Schema.getGlobalDescribe();
+System.debug('gd--'+gd);
+Schema.SObjectType sobjType = gd.get('Account');
+System.debug('sobjType--'+sobjType);
+Schema.DescribeSObjectResult r = sobjType.getDescribe();
+System.debug('r--'+r);
+Map<String, Schema.SObjectField> MapofField = r.fields.getMap();
+System.debug('MapofField--'+MapofField);
+for(String fieldName : MapofField.keySet())
+{
+Schema.SObjectField field = MapofField.get(fieldName);
+Schema.DescribeFieldResult F = field.getDescribe();
+System.debug('Field Name: '+F.getName()); 
+}
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+For getting all fields from fieldSet:
+
+Map<String, Schema.SObjectType> GlobalDescribeMap = Schema.getGlobalDescribe();
+System.debug('GlobalDescribeMap: ' + GlobalDescribeMap);
+
+Schema.SObjectType SObjectTypeObj = GlobalDescribeMap.get('Account');
+System.debug('SObjectTypeObj: ' + SObjectTypeObj);
+
+Schema.DescribeSObjectResult DescribeSObjectResultObj = SObjectTypeObj.getDescribe();
+System.debug('DescribeSObjectResultObj: ' + DescribeSObjectResultObj);
+// Retrieve the field set using Schema.FieldSet
+Schema.FieldSet fieldSetObj = DescribeSObjectResultObj.fieldSets.getMap().get('accountFieldSet'); // Replace 'accountFieldSet' with your actual field set API name
+System.debug('FieldSetObj: ' + fieldSetObj);
+
+if (fieldSetObj != null) {
+    for (Schema.FieldSetMember fieldSetMemberObj : fieldSetObj.getFields()) {
+        System.debug('API Name ====> ' + fieldSetMemberObj.getFieldPath()); // API name
+        System.debug('Label ====> ' + fieldSetMemberObj.getLabel()); // Field label
+        System.debug('Required ====> ' + fieldSetMemberObj.getRequired()); // Required status in the field set
+        System.debug('DbRequired ====> ' + fieldSetMemberObj.getDbRequired()); // DB required status
+        System.debug('Type ====> ' + fieldSetMemberObj.getType()); // Data type of the field
+    }
+} 
+
+OR
+
+Schema.FieldSet fieldSetObj = Schema.getGlobalDescribe().get('Account').getDescribe().fieldSets.getMap().get('accountFieldSet');
+for (Schema.FieldSetMember fieldSetMemberObj : fieldSetObj.getFields()) {
+        System.debug('API Name ====> ' + fieldSetMemberObj.getFieldPath()); // API name
+        System.debug('Label ====> ' + fieldSetMemberObj.getLabel()); // Field label
+        System.debug('Required ====> ' + fieldSetMemberObj.getRequired()); // Required status in the field set
+        System.debug('DbRequired ====> ' + fieldSetMemberObj.getDbRequired()); // DB required status
+        System.debug('Type ====> ' + fieldSetMemberObj.getType()); // Data type of the field
+    }
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
