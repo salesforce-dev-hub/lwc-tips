@@ -1,0 +1,39 @@
+============Json Type=============
+[
+{
+"CustomerName":"Customer1",
+"Profile":"Manager",
+"UserLastName":"Tet1",
+"Email":"pranavchouhan@cyntexa.com",
+"Alias":"tet1",
+"Username":"tet1@gmail.com",
+"CommunityNickname":"test111"
+},
+{
+"CustomerName":"Customer2",
+"Profile":"Cashier",
+"UserLastName":"Tet2",
+"Email":"pranavchouhan@cyntexa.com",
+"Alias":"tet2",
+"Username":"te2@gmail.com",
+"CommunityNickname":"test112"
+}
+]
+
+===========Wrapper===================
+
+public class TetPracticePaper3_Apex_Wrapper {
+    
+    public String CustomerName;
+    public String Profile;
+    public String UserLastName;
+    public String Email;
+    public String Alias;
+    public String Username;
+    public String CommunityNickname;
+
+    public static List<TetPracticePaper3_Apex_Wrapper> parse(String json) {
+        return (List<TetPracticePaper3_Apex_Wrapper>) System.JSON.deserialize(json, List<TetPracticePaper3_Apex_Wrapper>.class);
+    }
+}
+
