@@ -1,0 +1,22 @@
+public class TetPracticePaper3_Apex_Batch implements Database.Batchable<TetPracticePaper3_Apex_Wrapper>{
+	
+    public List<TetPracticePaper3_Apex_Wrapper> wrapper;
+    public TetPracticePaper3_Apex_Batch(List<TetPracticePaper3_Apex_Wrapper> temp){
+        this.wrapper=temp;
+    }
+    
+    public Iterable<TetPracticePaper3_Apex_Wrapper> start(Database.BatchableContext bc){
+        return wrapper;
+    }
+    
+    public void execute(Database.BatchableContext bc, List<TetPracticePaper3_Apex_Wrapper> wrapperList){
+        System.debug(wrapperList);
+        for(TetPracticePaper3_Apex_Wrapper wrap : wrapperList){
+            System.debug(wrap);
+        }   
+    }
+    
+    public void finish(Database.BatchableContext bc){
+        
+    }
+}
