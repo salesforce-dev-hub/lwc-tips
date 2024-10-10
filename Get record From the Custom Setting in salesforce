@@ -1,0 +1,26 @@
+Map<String, Schema.SObjectType> gd = Schema.getGlobalDescribe();
+
+for(String objectName :gd.keySet()){
+      Schema.SObjectType result=gd.get(objectName);
+      if(result.getDescribe().isCustomSetting()){
+              System.debug(objectName);
+             String query = 'SELECT';
+              // Grab the fields from the describe method and append them to the queryString one by one.
+             Map<String, Schema.SObjectField> objectFields =result.getDescribe().fields.getMap();
+             for(String s : objectFields.keySet()) {
+                    query += ' ' + s + ',';
+               }
+
+               if (query.subString(query.Length()-1,query.Length()) == ','){
+                   query = query.subString(0,query.Length()-1);
+               }
+               // Add FROM statement
+               query += ' FROM ' + objectName;
+               //System.debug(query ); //Show Querry if you want
+               System.debug(Database.query(query ));//Query and Display Sobject or show on VP
+				sObject usr = Database.query(query );
+         
+          System.debug(usr.get('Users__c'));
+
+      }
+}
