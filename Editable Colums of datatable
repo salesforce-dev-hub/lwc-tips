@@ -1,0 +1,24 @@
+this.columns = [
+            { label: 'Opportunity Name',
+                fieldName: 'Name',
+                type: 'button',
+                typeAttributes: { 
+                    label: { fieldName: 'Name' }, 
+                    name: 'viewOpportunity',
+                    variant: 'base'
+                },
+                cellAttributes: {
+                    style: { fieldName: 'priorityClass' } 
+                }
+            },
+            { label: 'StageName', fieldName: 'StageName', cellAttributes: {
+                    style: { fieldName: 'priorityClass' } 
+                }
+            },
+            { label: 'Amount', fieldName: 'Amount' , cellAttributes: {
+                style: { fieldName: 'priorityClass' } 
+            } },
+            { label: 'CloseDate', fieldName: 'CloseDate' , cellAttributes: {
+                style: { fieldName: 'priorityClass' } 
+            } }
+        ];
