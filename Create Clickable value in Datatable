@@ -1,0 +1,60 @@
+getOpportunities() {
+        this.opportunities = []
+        console.log('opportunities--', this.selectedPicklistValue);
+        getOpportunitiesByPicklistValueAndFieldSet({picklistField: this.picklistField, picklistValue: this.selectedPicklistValue, fieldSetName: this.fieldSetName})
+            .then(result => {
+                console.log('Opportunities--', JSON.stringify(result.opportunities, null, 2));
+                console.log('Fields', result.fields);
+                this.fieldsForModal = result.fields;
+                this.opportunities = result.opportunities.map(opp => {
+                    return {
+                        ...opp,
+                        accountName: opp.Account ? opp.Account.Name : ''
+                    };
+                });
+
+                this.columns = result.fields.map(field => {
+                    if (field === 'Account.Name') {
+                        return {
+                            label: 'Account Name',
+                            fieldName: 'accountName',
+                            type: 'text'
+                        };
+                    } else if (field === 'Name') {
+                        return {
+                            label: 'Opportunity Name',
+                            fieldName: 'Name',
+                            type: 'button',
+                            typeAttributes: { 
+                                label: { fieldName: 'Name' }, 
+                                name: 'viewOpportunity',
+                                variant: 'base'
+                            }
+                        };
+                    } else {
+                        return {
+                            label: field,
+                            fieldName: field,
+                            type: 'text'
+                        };
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Error', error);
+            });
+    }
+
+    handleRowAction(event) {
+        const row = event.detail.row;
+        console.log('row ', row);
+
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: {
+                recordId: row.Id,
+                objectApiName: 'Opportunity',
+                actionName: 'view'
+            }
+        });
+    }
