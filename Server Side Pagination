@@ -1,0 +1,112 @@
+public static List<Order> fetchOrder(Boolean buttonTypePrevious, Boolean buttonTypeNext, String firstOrderId, String lastOrderId, Integer recordsLimit) {
+        List<Order> orderList = new List<Order>();
+        if (buttonTypeNext == true) {
+            // Fetch records with Id greater than the lastId
+            orderList = [SELECT Id, OrderNumber , Account.Name, Status, Amount__c, EffectiveDate FROM Order WHERE OrderNumber > :lastOrderId ORDER BY OrderNumber ASC LIMIT :recordsLimit];
+        } else if (buttonTypePrevious == true) {
+            // firstOrderId = lastOrderId;
+            // Fetch records with Id less than the firstId
+            orderList = [SELECT Id, OrderNumber , Account.Name, Status, Amount__c, EffectiveDate FROM Order WHERE OrderNumber < :firstOrderId ORDER BY OrderNumber DESC LIMIT :recordsLimit];
+        } else {
+            // Fetch the first page of records
+            orderList = [SELECT Id, OrderNumber , Account.Name, Status, Amount__c, EffectiveDate FROM Order ORDER BY OrderNumber ASC LIMIT :recordsLimit];
+        }
+
+        if (!orderList.isEmpty()) {
+            return orderList;
+        }
+        return null;
+    }
+
+
+=======================================================
+
+fetchAccount({
+            buttonTypePrevious: this.buttonTypePrevious,
+            buttonTypeNext: this.buttonTypeNext,
+            firstOrderId: this.firstId,
+            lastOrderId: this.lastId,
+            recordsLimit: this.recordsPerPage
+        })
+        .then(result => {
+            // Update accounts data and pagination details
+            this.accounts = result.map(item=>{
+                
+                if (item.Status  == 'Order Picked Up') {
+                    return {
+                        ...item,
+                        AccountName: item.Account.Name,
+                        statusColor : 'color: green ; background-color : rgb(182, 255, 182)',
+                    };
+                } else if (item.Status == 'Order Placed') {
+                    return {
+                        ...item,
+                        AccountName: item.Account.Name,
+                        statusColor : 'color: green; background-color : rgb(182, 255, 182) ',
+                    };
+                } else if (item.Status == 'Cancelled') {
+                    return {
+                        ...item,
+                        AccountName: item.Account.Name,
+                        statusColor : 'color: red ; background-color : rgb(254, 157, 157)',
+                    };
+                } else if (item.Status == 'Delivered') {
+                    return {
+                        ...item,
+                        AccountName: item.Account.Name,
+                        statusColor : 'color: green ; background-color : rgb(182, 255, 182)',
+                    };
+                } else{
+                        return {
+                        ...item,
+                        AccountName: item.Account.Name,
+                        statusColor : 'color: orange ; background-color : rgb(249, 217, 196)',
+                    };
+                }
+                
+            
+            });
+            this.firstId = result[0].OrderNumber;
+            this.lastId = result[result.length - 1].OrderNumber;
+            console.log('1',this.firstId);
+            console.log('l',this.lastId);
+            
+            console.log('result-->',JSON.stringify(this.accounts,null,2));
+            
+            // Sort accounts if navigating to the previous page
+            if (this.buttonTypePrevious === true) {
+                this.lastId = result[0].OrderNumber;
+                this.firstId = result[result.length - 1].OrderNumber;
+                this.accounts.sort((a, b) => (a.OrderNumber > b.OrderNumber) ? 1 : -1);
+            }
+
+            this.showLoading = false;
+        })
+        .catch(error => {
+            this.showLoading = false;
+            console.error('Error: ' + error.body.message);
+        });
+
+
+
+=================================================
+
+// Handle click on "Previous" button
+    previousHandler() {
+        if (this.pageNumber > 1) {
+            this.pageNumber = this.pageNumber - 1;
+            this.buttonTypePrevious = true;
+            this.buttonTypeNext = false;
+            this.getRecords();
+        }
+    }
+
+    // Handle click on "Next" button
+    nextHandler() {
+        if ((this.pageNumber < this.totalPage) && this.pageNumber !== this.totalPage) {
+            this.pageNumber = this.pageNumber + 1;
+            this.buttonTypeNext = true;
+            this.buttonTypePrevious = false;
+            this.getRecords();
+        }
+    }
