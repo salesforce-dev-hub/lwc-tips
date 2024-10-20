@@ -1,0 +1,6 @@
+Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
+String[] toAdd = new String[]{'pranavchouhan03@gmail.com','pranavchouhan@cyntexa.com'};
+mail.setToAddresses(toAdd);
+mail.setSubject('Congratulations !!! Batch job is completed !');
+mail.setPlainTextBody('Hey the batch is completed');
+Messaging.SendEmail(new Messaging.SingleEmailMessage[]{mail});
