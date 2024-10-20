@@ -1,0 +1,38 @@
+public class Dap27June2024_platform_event_helper {
+    public static void publishEvent(List<Account> accList){
+		for(Account acc : accList){
+            Dap27June2024_platform_event__e event = new Dap27June2024_platform_event__e();
+            event.accId__c = (String)acc.ID;
+            EventBus.publish(event);
+        }        
+    }
+}
+
+----------------------------------------------------------------------------
+
+import { subscribe } from 'lightning/empApi';
+export default class TetPaperMarch2024_Messenger_Lwc extends LightningElement {
+    channelName = '/event/Message__e';
+    connectedCallback(){
+    subscribe(this.channelName, -1, this.manageEvent).then(response => {
+            console.log('Subscribed to platform event: ', response);
+        }).catch(error => {
+            console.log('Error subscribing to platform event:', error);
+        });
+
+    manageEvent = async event => {
+        const refreshRecordEvent = event.data.payload;
+        console.log('Platform event received-->', JSON.stringify(refreshRecordEvent));
+
+        let userName = refreshRecordEvent.to__c;
+
+        if (this.usrId === userName) {
+            await this.handleSelect({ detail: { name: this.selectedUser } });
+        }
+    }
+
+    async handleSelect(event) {
+        this.selectedUser = event.detail.name;
+        console.log('Selected User-->', this.selectedUser);
+    }
+}
