@@ -1,0 +1,21 @@
+@RestResource(urlMapping ='/xyz')
+global class xyz {
+
+	@HttpPost
+    global static String myMethod(){
+        RestRequest req = RestContext.Request;
+        String str = req.requestBody.toString();
+        List<xyz_Wrapper> jsonList = xyz_Wrapper.parse(str);
+    	System.debug(jsonList);
+       	
+       	List<Map<String,String>> responseListMap = new List<Map<String , String>>();
+                
+        for(xyz_Wrapper j : jsonList){
+            System.debug(j);
+           
+        }
+        
+        
+        return JSON.serialize(responseListMap);
+    }
+}
