@@ -1,0 +1,58 @@
+[
+    {
+        "SourceId" : "acc1",
+        "Name" : "acc1 Pranav",
+        "Phone" : "1478523690",
+        "Website" : "www.acc1.com",
+        "Contacts" : [
+            {
+                "SourceId" : "con1",
+                "FirstName" : "con1",
+                "LastName" : "Pranav1",
+                "Email" : "con1@gmail.com"
+            },
+            {
+                "SourceId" : "con2",
+                "FirstName" : "con2",
+                "LastName" : "Pranav2",
+                "Email" : "con2@gmail.com"
+            }
+        ]
+    },
+    {
+        "SourceId" : "acc2",
+        "Name" : "acc2 Pranav",
+        "Phone" : "1478528590",
+        "Website" : "www.acc2.com",
+        "Contacts" : [
+            {
+                
+                "FirstName" : "con3",
+                "LastName" : "Pranav3",
+                "Email" : "con3@gmail.com"
+            }
+        ]
+    }
+]
+
+--------------------------------------------------------------------------------------
+
+public class wrapper {
+	public String SourceId;
+    public String Name;
+    public String Phone;
+    public String Website;
+    public List<Contact> Contacts;
+    
+    public class Contact{
+        public String SourceId;
+        Public String FirstName;
+        Public String LastName;
+        Public String Email;
+    }
+
+    public static List<wrapper> parse(String json) {
+        return (List<wrapper>) System.JSON.deserialize(json, List<wrapper>.class);
+    }
+
+}
