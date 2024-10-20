@@ -1,0 +1,71 @@
+global class UnsolvedCaseReassigned implements Database.Batchable<sObject> , Schedulable {          
+    
+    global Database.QueryLocator start(Database.BatchableContext bc){
+        
+        return Database.getQueryLocator([Select id , OwnerId From Case Where Status != 'Closed']);
+    }
+    
+    global void execute(Database.BatchableContext bc , List<Case> caseList){
+        
+        
+        AggregateResult[] minCaseAgentResult = [ SELECT OwnerId, COUNT(Id)caseCount FROM Case WHERE Status != 'Closed' GROUP BY OwnerId ORDER BY COUNT(Id) ASC];
+        List<map<string,object>> usersCaseCount = new List<map<string,object>>();
+       
+        integer i=0;
+        for(AggregateResult newAgr : minCaseAgentResult){
+            usersCaseCount.add(new map<string,object>());
+            usersCaseCount[i].put('count',newAgr.get('caseCount'));
+            usersCaseCount[i].put('ownerId',newAgr.get('ownerId'));
+            i++;
+        }
+        
+       	if(usersCaseCount.size() > 1){
+            integer c = 0;
+            for(Case unsolvedCase : caseList){
+                if(c <= usersCaseCount.size()-2){
+                    
+                    if((Integer)usersCaseCount[c].get('count') <= (Integer)usersCaseCount[c+1].get('count')){
+                        if(unsolvedCase.ownerId == (id)usersCaseCount[c].get('ownerId')){
+                            c++;
+                            if(c == usersCaseCount.size()){
+                            	c=0;
+                            }
+                        }
+                        unsolvedCase.ownerId = (Id)usersCaseCount[c].get('ownerId');
+                        usersCaseCount[c].put('count',(integer)usersCaseCount[c].get('count')+1);
+                    }
+                    else{
+                        c++;
+                        if(c == usersCaseCount.size()){
+                            c=0;  
+                        }
+                    }
+                    
+                }
+                else{
+                    if(unsolvedCase.ownerId == (id)usersCaseCount[c].get('ownerId')){
+                            c=0;
+                    }
+                    else{
+                        unsolvedCase.ownerId = (Id)usersCaseCount[c].get('ownerId');
+                        usersCaseCount[c].put('count',(integer)usersCaseCount[c].get('count')+1);
+                    }
+                    
+                }
+            }
+
+     
+        }
+        update caseList;
+    }
+    
+    global void Finish(Database.BatchableContext bc){
+        
+    }
+    
+	global void execute(SchedulableContext sc){
+  	    UnsolvedCaseReassigned ucr = new UnsolvedCaseReassigned();
+		Database.executeBatch(ucr , 200);
+    }
+    
+}
