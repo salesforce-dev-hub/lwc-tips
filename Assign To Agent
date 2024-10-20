@@ -1,0 +1,275 @@
+@RestResource(urlMapping='/createCase')
+global class ApexQuestion {
+    @HttpPost
+    global static void createCaseANDTask (){
+        try {
+            RestRequest req = RestContext.request;
+            String jsonInput = req.requestBody.toString();
+            System.debug(jsonInput);
+            
+            List<Case> rawCaseList = (List<Case>) JSON.deserialize(jsonInput, List<Case>.class);
+            
+            System.debug('rawCaseList: ' + rawCaseList);
+
+            
+            // Call the batch class with the JSON input
+            ApexQuestionBatch batch = new ApexQuestionBatch(rawCaseList);
+            Database.executeBatch(batch, 10); 
+         	
+            
+            RestResponse res = RestContext.response;
+            res.statusCode = 200;
+            res.responseBody = Blob.valueOf('Batch process started successfully');
+        } catch (Exception e) {
+            RestResponse res = RestContext.response;
+            res.statusCode = 500;
+            res.responseBody = Blob.valueOf('Error: ' + e.getMessage());
+        }
+ 
+	}
+
+}
+
+===========================================================================================
+
+global class ApexQuestionBatch implements Database.Batchable<Case>,Database.Stateful  {
+    
+    private List<Case> caseList;
+    public ApexQuestionBatch(List<Case> jsonInput)
+    {
+     	   caseList = jsonInput;
+    }    
+    global Iterable<Case> start(Database.BatchableContext BC) {
+        System.debug('caseList'+caseList);
+        return caseList;
+       
+    }
+    global void execute(Database.BatchableContext BC, List<Case> caseList) {
+    	
+        List<Case> oldCaseList = [Select Origin, Description, Status, Subject FROM Case ];
+        System.debug('oldCaseList'+oldCaseList);
+        Set<String> subjectSet = new Set<String>();
+        for(Case c : oldCaseList){
+            subjectSet.add(c.Subject);
+        }
+        
+        System.debug('subjectSet'+subjectSet);
+        List<Case> caseToInsert = new List<Case>();
+        for(Case c : caseList){
+            
+            if(!subjectSet.contains(c.Subject)){   
+            	Case ca = new Case();
+                ca.Subject = c.Subject;
+                ca.Description = c.Description;
+                ca.Origin = c.Origin;
+                ca.Priority = c.Priority;
+                ca.Status = c.Status;
+                ca.Type = c.Type;
+                
+                subjectSet.add(c.Subject);
+                caseToInsert.add(ca);
+         
+           }
+        }
+        
+        List<Id> caseIdList = new List<Id>();
+        if(!caseToInsert.isEmpty()){
+        Database.SaveResult[] srList = Database.insert(caseToInsert, false);
+        	for (Database.SaveResult sr : srList) {
+    		if (sr.isSuccess()) {
+                caseIdList.add(sr.getId());
+    		}
+    		else {
+             	for(Database.Error err : sr.getErrors()) {
+            		System.debug('The following error has occurred.');                    
+            		System.debug(err.getStatusCode() + ': ' + err.getMessage());
+            		System.debug('Case fields that affected this error: ' + err.getFields());
+        			}
+            	}
+        	}   
+        }
+        System.debug('caseIdList'+caseIdList);
+        
+       	List<User> agentList = [SELECT Id, Name, Profile.Name FROM USER WHERE Profile.Name = 'Agent'];
+        System.debug('agentList'+agentList);
+        
+        Set<Id> userID = new Set<Id>();
+        for(User u: agentList){
+            userID.add(u.Id);
+        }
+        
+        System.debug('userID'+userID);
+        
+        List<AggregateResult> agentTaskCount = [SELECT OwnerId, COUNT(Id) taskCount 
+                                                FROM Task 
+                                                WHERE OwnerId IN (SELECT Id FROM User WHERE Profile.Name = 'Agent') 
+                                                GROUP BY OwnerId 
+                                                HAVING COUNT(Id) < 5];
+        
+        Map<Id, Integer> agentMap = new Map<Id, Integer>();
+        for (AggregateResult ar : agentTaskCount) {
+            agentMap.put((Id) ar.get('OwnerId'), (Integer) ar.get('taskCount'));
+        }
+        
+        Group taskQueue = [SELECT Id FROM Group WHERE Type = 'Queue' AND Name = 'New Task Queue' LIMIT 1];
+        Id queueId = taskQueue.Id;
+        
+        List<Task> taskList = new List<Task>();
+        for (Id caseId : caseIdList) {
+            Boolean taskAssigned = false;
+            for (Id agentId : agentMap.keySet()) {
+                if (agentMap.get(agentId) < 5) {
+                    Task t = new Task(
+                        Subject = 'Other',
+                        Status = 'In Progress',
+                        WhatId = caseId,
+                        OwnerId = agentId
+                    );
+                    taskList.add(t);
+                    agentMap.put(agentId, agentMap.get(agentId) + 1);
+                    taskAssigned = true;
+                    break;
+                }
+            }
+            
+            if (!taskAssigned) {
+                Task t = new Task(
+                    Subject = 'Other',
+                    Status = 'In Progress',
+                    WhatId = caseId,
+                    OwnerId = queueId
+                );
+                taskList.add(t);
+            }
+        }
+        
+        if (!taskList.isEmpty()) {
+            Database.insert(taskList, false);
+        }
+        
+    }
+    global void finish(Database.BatchableContext BC) {
+    }
+}
+
+================================================================================================
+
+global class ApexQuestionBatch implements Database.Batchable<Case>,Database.Stateful  {
+    
+    private List<Case> caseList;
+    public ApexQuestionBatch(List<Case> jsonInput)
+    {
+     	   caseList = jsonInput;
+    }    
+    global Iterable<Case> start(Database.BatchableContext BC) {
+        System.debug('caseList'+caseList);
+        return caseList;
+       
+    }
+    global void execute(Database.BatchableContext BC, List<Case> caseList) {
+    	
+        List<Case> oldCaseList = [Select Origin, Description, Status, Subject FROM Case ];
+        System.debug('oldCaseList'+oldCaseList);
+        Set<String> subjectSet = new Set<String>();
+        for(Case c : oldCaseList){
+            subjectSet.add(c.Subject);
+        }
+        
+        System.debug('subjectSet'+subjectSet);
+        List<Case> caseToInsert = new List<Case>();
+        for(Case c : caseList){
+            
+            if(!subjectSet.contains(c.Subject)){   
+            	Case ca = new Case();
+                ca.Subject = c.Subject;
+                ca.Description = c.Description;
+                ca.Origin = c.Origin;
+                ca.Priority = c.Priority;
+                ca.Status = c.Status;
+                ca.Type = c.Type;
+                
+                subjectSet.add(c.Subject);
+                caseToInsert.add(ca);
+         
+           }
+        }
+        
+        List<Id> caseIdList = new List<Id>();
+        if(!caseToInsert.isEmpty()){
+        Database.SaveResult[] srList = Database.insert(caseToInsert, false);
+        	for (Database.SaveResult sr : srList) {
+    		if (sr.isSuccess()) {
+                caseIdList.add(sr.getId());
+    		}
+    		else {
+             	for(Database.Error err : sr.getErrors()) {
+            		System.debug('The following error has occurred.');                    
+            		System.debug(err.getStatusCode() + ': ' + err.getMessage());
+            		System.debug('Case fields that affected this error: ' + err.getFields());
+        			}
+            	}
+        	}   
+        }
+        System.debug('caseIdList'+caseIdList);
+        
+       	List<User> agentList = [SELECT Id, Name, Profile.Name FROM USER WHERE Profile.Name = 'Agent'];
+        System.debug('agentList'+agentList);
+        
+        Set<Id> userID = new Set<Id>();
+        for(User u: agentList){
+            userID.add(u.Id);
+        }
+        
+        System.debug('userID'+userID);
+        
+        List<AggregateResult> agentTaskCount = [SELECT OwnerId, COUNT(Id) taskCount 
+                                                FROM Task 
+                                                WHERE OwnerId IN (SELECT Id FROM User WHERE Profile.Name = 'Agent') 
+                                                GROUP BY OwnerId 
+                                                HAVING COUNT(Id) < 5];
+        
+        Map<Id, Integer> agentMap = new Map<Id, Integer>();
+        for (AggregateResult ar : agentTaskCount) {
+            agentMap.put((Id) ar.get('OwnerId'), (Integer) ar.get('taskCount'));
+        }
+        
+        Group taskQueue = [SELECT Id FROM Group WHERE Type = 'Queue' AND Name = 'New Task Queue' LIMIT 1];
+        Id queueId = taskQueue.Id;
+        
+        List<Task> taskList = new List<Task>();
+        for (Id caseId : caseIdList) {
+            Boolean taskAssigned = false;
+            for (Id agentId : agentMap.keySet()) {
+                if (agentMap.get(agentId) < 5) {
+                    Task t = new Task(
+                        Subject = 'Other',
+                        Status = 'In Progress',
+                        WhatId = caseId,
+                        OwnerId = agentId
+                    );
+                    taskList.add(t);
+                    agentMap.put(agentId, agentMap.get(agentId) + 1);
+                    taskAssigned = true;
+                    break;
+                }
+            }
+            
+            if (!taskAssigned) {
+                Task t = new Task(
+                    Subject = 'Other',
+                    Status = 'In Progress',
+                    WhatId = caseId,
+                    OwnerId = queueId
+                );
+                taskList.add(t);
+            }
+        }
+        
+        if (!taskList.isEmpty()) {
+            Database.insert(taskList, false);
+        }
+        
+    }
+    global void finish(Database.BatchableContext BC) {
+    }
+}
