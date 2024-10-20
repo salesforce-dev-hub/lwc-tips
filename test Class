@@ -1,0 +1,36 @@
+@isTest
+public class TriggerTest1Test {
+    @testSetup
+    static void setupTestData() {
+
+        Opportunity opp = new Opportunity(Name = 'Test Opportunity',StageName = 'Prospecting',CloseDate = Date.today() , Opportunity_Line_Item_Counter__c = 0);
+        insert opp;
+
+        Product2 prod = new Product2(Name = 'Test Product', IsActive = true);
+        insert prod;
+		
+        PricebookEntry pbe = new PricebookEntry(Pricebook2Id = Test.getStandardPricebookId(),Product2Id = prod.Id,UnitPrice = 100,IsActive = true);
+        insert pbe;
+		
+        
+        OpportunityLineItem oli1 = new OpportunityLineItem(OpportunityId = opp.Id,Quantity = 1,TotalPrice = 100,PricebookEntryId = pbe.Id);
+        insert oli1;
+
+        OpportunityLineItem oli2 = new OpportunityLineItem(OpportunityId = opp.Id,Quantity = 1,TotalPrice = 100,PricebookEntryId = pbe.Id);
+        insert oli2;
+    }
+
+    @isTest
+    static void testTriggerTest1() {
+        
+
+        Opportunity opp = [SELECT Id, Opportunity_Line_Item_Counter__c FROM Opportunity LIMIT 1];
+        System.assertEquals(2, opp.Opportunity_Line_Item_Counter__c);
+       	
+        List<OpportunityLineItem> oliList = [SELECT Id, Sequence_Number__c FROM OpportunityLineItem];
+        for(OpportunityLineItem oli : oliList){
+            System.assert(oli.Sequence_Number__c != Null);
+            
+        }	 
+    }
+}
