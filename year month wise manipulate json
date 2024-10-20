@@ -1,0 +1,53 @@
+{
+2024:{
+  Jan:[{
+    hcjhwb
+  },{
+    nnsbcj
+  }]
+}
+}
+
+
+await getMapOfAllData({ recordId: this.recordId })
+        .then(result => {
+            let data = [];
+
+            Object.keys(result).forEach(year => {
+                let yearNode = { 
+                    id: `year-${year}`, 
+                    name: year, 
+                    _children: [],
+                    isOpportunity: 'hide-action' // Hide for year nodes
+                };
+
+                Object.keys(result[year]).forEach(month => {
+                    let monthNode = { 
+                        id: `month-${month}`, 
+                        name: month, 
+                        _children: [],
+                        isOpportunity: 'hide-action' // Hide for month nodes
+                    };
+
+                    result[year][month].forEach(opportunity => {
+                        monthNode._children.push({
+                            id: opportunity.Id,
+                            name: opportunity.Name,
+                            closeDate: opportunity.CloseDate,
+                            stage: opportunity.StageName,
+                            statusIcon: opportunity.Status__c ? 'utility:success' : 'utility:warning',
+                            isOpportunity: 'show-action' // Show for opportunity nodes
+                        });
+                    });
+
+                    yearNode._children.push(monthNode);
+                });
+
+                data.push(yearNode);
+            });
+
+            this.gridData = data;
+        })
+        .catch(error => {
+            console.error('Error fetching data:', error);
+        });
