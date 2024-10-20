@@ -1,0 +1,103 @@
+public class HierarchyController {
+
+    @AuraEnabled
+    public static hierarchyWrapper getAllAccountHierarchy() {
+        List<Account> accountList = [SELECT Id, Name, NumberOfEmployees, Phone, Owner.Name, BillingAddress, ParentId FROM Account];
+        return getAllHierarchy(accountList, 'ParentId');
+    }
+    
+    @AuraEnabled
+    public static hierarchyWrapper getAllHierarchy(List<SObject> recordList, String parentFieldApiName) {
+        Map<Id, List<SObject>> parentToChildrenMap = new Map<Id, List<SObject>>();
+        List<SObject> parentList = new List<SObject>();
+        
+        for (SObject record : recordList) {
+            Id parentFieldValue = (Id) record.get(parentFieldApiName);
+            
+            if (parentFieldValue != null) {
+                if (parentToChildrenMap.containsKey(parentFieldValue)) {
+                    parentToChildrenMap.get(parentFieldValue).add(record);
+                } else {
+                    parentToChildrenMap.put(parentFieldValue, new List<SObject>{record});
+                }
+            } else {
+                parentList.add(record); // Accounts with no parent go to the root level
+            }
+        }
+        
+        hierarchyWrapper wrapper = new hierarchyWrapper();
+        wrapper.superParentList = parentList;
+        wrapper.parentMap = parentToChildrenMap;
+        
+        return wrapper;
+    }
+    
+    public class hierarchyWrapper {
+        @AuraEnabled public List<SObject> superParentList { get; set; }
+        @AuraEnabled public Map<Id, List<SObject>> parentMap { get; set; }
+    }
+}
+
+
+===========================================
+
+import { LightningElement, api, track } from 'lwc';
+import getAllAccountHierarchy from '@salesforce/apex/HierarchyController.getAllAccountHierarchy';
+
+const COLUMNS_DEFINITION_BASIC = [
+    { label: 'Account Name', fieldName: 'Name', type: 'text' },
+    { label: 'Employees', fieldName: 'NumberOfEmployees', type: 'text' },
+    { label: 'Phone', fieldName: 'Phone', type: 'text' },
+    { label: 'Owner Name', fieldName: 'OwnerName', type: 'text' },
+    { label: 'Billing Address', fieldName: 'BillingAddress', type: 'text' }
+];
+
+export default class RoleHierarchyExplorer extends LightningElement {
+    @track hierarchyMap = [];
+    @track isLoading = false;
+    @api gridColumns = COLUMNS_DEFINITION_BASIC;
+    @api primaryKey = 'Id';
+
+    connectedCallback() {
+        this.isLoading = true;
+        getAllAccountHierarchy()
+            .then(result => {
+                this.parseResult(result);
+                this.isLoading = false;
+            })
+            .catch(error => {
+                console.error('Error fetching hierarchy data:', error);
+                this.isLoading = false;
+            });
+    }
+
+    parseResult(result) {
+        this.hierarchyMap = [];
+        result.superParentList.forEach(element => {
+            this.hierarchyMap.push(this.findChildrenNode(element, result));
+        });
+        this.hierarchyMap = JSON.parse(JSON.stringify(this.hierarchyMap));
+    }
+
+    findChildrenNode(element, result) {
+        if (result.parentMap[element[this.primaryKey]]) {
+            element._children = result.parentMap[element[this.primaryKey]].map(child => {
+                return this.findChildrenNode(child, result);
+            });
+        }
+        return element;
+    }
+}
+=========================================
+
+<template>
+    <lightning-card title="Account Hierarchy">
+        <lightning-tree-grid
+            key-field="Id"
+            columns={gridColumns}
+            data={hierarchyMap}
+            hide-checkbox-column
+            is-loading={isLoading}>
+        </lightning-tree-grid>
+    </lightning-card>
+</template>
