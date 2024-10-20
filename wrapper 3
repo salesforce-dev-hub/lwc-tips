@@ -1,0 +1,79 @@
+[{
+      "Account": {
+              "name": "New Account",
+              "company_external_system_id": "12345",
+              "External_last_modified_datetime": "2023-09-20T12:00:00Z",
+              "Opportunities": [
+                                {
+                                "Name": "New Opportunity",
+                                "Amount": 10000,
+                                "Stage": "Prospecting",
+                                "LeadSource": "Web",
+                                "external_system_id__c": "12345",
+                                "external_last_modified_datetime__c": "2023-09-20T12:00:00Z"
+                                },
+                                
+                                {
+                                "Name": "New Opportunity1",
+                                "Amount": 100,
+                                "Stage": "Prospecting",
+                                "LeadSource": "Email",
+                                "external_system_id__c": "122346",
+                                "external_last_modified_datetime__c": "2023-09-20T2:00:00Z"
+                                }
+              ]
+      }
+},
+{
+        "Account": {
+        "name": "new Account 1",
+        "company_external_system_id": "12346",
+        "External_last_modified_datetime": "2023-09-20T2:00:00Z",
+        "Opportunities": [
+                          {
+                          "Name": "New Opportunity",
+                          "Amount": 10000,
+                          "Stage": "Prospecting",
+                          "LeadSource": "Web",
+                          "external_system_id__c": "12345",
+                          "external_last_modified_datetime__c": ""
+                          },
+                          {
+                          "Name": "New Opportunity1",
+                          "Amount": 100,
+                          "Stage": "Prospecting",
+                          "LeadSource": "Email",
+                          "external_system_id__c": "",
+                          "external_last_modified_datetime__c": "2023-09-20T2:00:00Z"
+                          }
+        ]
+        }
+}
+]
+
+------------------------------------------------------------------------------------------
+
+public class wrapper {
+	public class AccountClass {
+		public String name;
+		public String company_external_system_id;
+		public String External_last_modified_datetime;
+		public List<OpportunityClass> Opportunities;
+	}
+
+	public AccountClass Account;
+
+	public class OpportunityClass {
+		public String Name;
+		public Integer Amount;
+		public String Stage;
+		public String LeadSource;
+		public String external_system_id_c;
+		public String external_last_modified_datetime_c;
+	}
+
+	
+	public static List<wrapper> parse(String json) {
+		return (List<wrapper>) System.JSON.deserialize(json, List<wrapper>.class);
+	}
+}
