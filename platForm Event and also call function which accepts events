@@ -36,3 +36,36 @@ export default class TetPaperMarch2024_Messenger_Lwc extends LightningElement {
         console.log('Selected User-->', this.selectedUser);
     }
 }
+
+
+======================================================================================
+
+
+channelName = '/event/Tet_August_2024_Record_Update__e';
+
+    async connectedCallback() {
+        
+        subscribe(this.channelName, -1, this.manageEvent).then(response => {
+            this.subscription = response;
+            console.log('Subscribed to platform event: ', response);
+        });
+    }
+
+    manageEvent = event=> {
+        console.log('manageEvent',event);
+        const refreshRecordEvent = event.data.payload;
+        console.log('refreshRecordEvent',JSON.stringify(refreshRecordEvent));
+        
+        if (refreshRecordEvent.recordId__c == this.recordId) {
+            console.log('refreshRecordEvent.recordId__c',JSON.stringify(refreshRecordEvent.recordId__c));
+            
+           console.log('-----------',this.activeLeadSourceTab,'----',this.activeStageNameTab,'--------',this.objectApiName);
+           
+            if (this.activeLeadSourceTab != '') {
+                this.handleActiveTabOfContact({ target: { value: this.activeLeadSourceTab } });
+            } else if (this.activeStageNameTab != '') {
+                this.handleActiveTabOfOpportunity({ target: { value:this.activeStageNameTab } });
+            }   
+            
+        }
+    }
