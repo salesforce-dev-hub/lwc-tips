@@ -1,0 +1,24 @@
+Schema.SObjectType sobjectTypeOfRecord = recId.getSObjectType();
+        String sobjectName = sobjectTypeOfRecord.getDescribe().getName();
+        System.debug(sobjectName);
+
+        
+        List<String> childObjectNames = new List<String>();
+        Schema.SObjectType sObjectType = Schema.getGlobalDescribe().get(sobjectName);
+        Schema.DescribeSObjectResult describeSObjectResult = sObjectType.getDescribe();
+
+        for (Schema.ChildRelationship cr : describeSObjectResult.getChildRelationships()) {
+            System.debug('cr'+cr);
+            System.debug('child object name : '+cr.getChildSObject());
+            Schema.DescribeSObjectResult childObjPermission = Schema.getGlobalDescribe().get(String.valueof(cr.getChildSObject())).getDescribe();
+            System.debug('childObjPermission--'+childObjPermission);
+            if (childObjPermission.isQueryable() && childObjPermission.isAccessible() ) {
+                System.debug('CHILD isQueryable()');
+                childObjectNames.add(String.valueof(cr.getChildSObject()));
+                System.debug(cr.getChildSObject());
+            }  
+            
+        }
+        //System.debug('childObjectNames: '+childObjectNames);
+
+        return childObjectNames;
