@@ -1,0 +1,36 @@
+[
+{
+"CustomerName":"Customer1",
+"Profile":"Manager",
+"UserLastName":"Tet1",
+"Email":"cjdjcc.com",
+"Alias":"te1",
+"Username":"tet1@gmail.com",
+"CommunityNickname":"test111"
+},
+{
+"CustomerName":"Customer2",
+"Profile":"Cashier",
+"UserLastName":"Tet2",
+"Email":"jdwbcjw.com",
+"Alias":"te",
+"Username":"te2@gmail.com",
+"CommunityNickname":"test112"
+}
+]
+--------------------------------------------------------------------------------------------------------
+
+public class wrapper {
+    
+    public String CustomerName;
+    public String Profile;
+    public String UserLastName;
+    public String Email;
+    public String Alias;
+    public String Username;
+    public String CommunityNickname;
+
+    public static List<wrapper> parse(String json) {
+        return (List<wrapper>) System.JSON.deserialize(json, List<wrapper>.class);
+    }
+}
