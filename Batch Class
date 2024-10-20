@@ -1,0 +1,28 @@
+global class UpdateLeadBatch implements Database.Batchable<sObject> , Schedulable {
+    
+    //Start
+    global  Database.QueryLocator start(Database.BatchableContext bc){
+        return Database.getQueryLocator([Select AnnualRevenue From Lead]);
+    }
+    
+    //Execute
+    global void execute(Database.BatchableContext bc , List<Lead> lList){
+        
+    }
+    
+    //Finish
+    global void finish(Database.BatchableContext bc){
+        Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
+        String[] toAdd = new String[]{'pranavchouhan03@gmail.com','pranavchouhan@cyntexa.com'};
+        mail.setToAddresses(toAdd);
+        mail.setSubject('Congratulations !!! Batch job is completed !');
+        mail.setPlainTextBody('Hey the batch is completed');
+        Messaging.SendEmail(new Messaging.SingleEmailMessage[]{mail});
+    } 
+    
+    global void execute(SchedulableContext sc){
+        UpdateLeadBatch ulb = new UpdateLeadBatch();
+		Database.executeBatch(ulb);
+    }
+    
+}
