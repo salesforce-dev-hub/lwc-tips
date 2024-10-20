@@ -1,0 +1,65 @@
+startindex = 0;
+    endIndex = 5;
+    @track nextbut = false;
+    @track prevbut = true;
+
+showData(){
+        console.log('show');
+        if (this.productsRecord.length <= 5) {
+
+            this.nextbut = true;
+            this.prevbut = true;
+            
+        } else {
+
+            this.nextbut = false;
+            this.prevbut = true;
+            
+        }
+        if(this.startindex >= 0){
+            this.recordToShow = this.productsRecord.slice(this.startindex ,this.endIndex);
+            console.log('recordToShow--',JSON.stringify(this.recordToShow , null ,2));
+        }
+        
+    }
+    handleNextClick(){
+        console.log('next');
+        this.recordToShow = [];
+        console.log('next1 ',this.startindex , this.endIndex);
+        
+        if(this.endIndex + 5 > this.productsRecord.length){
+            console.log('if');
+            this.nextbut = true;
+            this.prevbut = false;
+            this.startindex = this.endIndex;
+            this.endIndex = this.endIndex +5;
+
+            console.log('nextif ',this.startindex , this.endIndex);
+        }else{
+            this.startindex = this.endIndex;
+            this.endIndex = this.endIndex + 5;
+            console.log('nextelse ',this.startindex , this.endIndex);
+        }
+        
+        this.recordToShow = this.productsRecord.slice(this.startindex ,this.endIndex);
+    }
+        
+
+    handlePreviousClick(){
+        console.log('next');
+        this.recordToShow = [];
+        console.log('pre ',this.startindex , this.endIndex);
+        if(this.startindex - 5 <= 0){
+            this.nextbut = false;
+            this.prevbut = true;
+            this.startindex = 0;
+            this.endIndex = 5;
+            console.log('pre if ',this.startindex , this.endIndex);
+        }else{
+            this.startindex = this.startindex - 5;
+            this.endIndex = this.endIndex - 5;
+            console.log('preelse ',this.startindex , this.endIndex);
+        }
+        this.recordToShow = this.productsRecord.slice(this.startindex,this.endIndex);
+
+    }
