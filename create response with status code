@@ -1,0 +1,123 @@
+@RestResource(urlMapping ='/pqr')
+global class TetPracticePaper8_Apex_RestResource{
+
+	@HttpPost
+    global static String myMethod(){
+        
+        
+        RestRequest req = RestContext.request;
+        String str = req.requestBody.toString();        
+        List<TetPracticePaper8_Apex_Wrapper> jsonList = TetPracticePaper8_Apex_Wrapper.parse(str);
+        System.debug('JSONList: ' + jsonList);
+        
+        RestResponse res = RestContext.response;
+        
+        Map<String, Account> upsertAccountMap = new Map<String, Account>();
+        List<Contact> upsertContactList = new List<Contact>();
+        
+        for (TetPracticePaper8_Apex_Wrapper json : jsonList) {
+            
+            Account acc = new Account();
+            acc.Name = json.Name;
+            acc.SourceId__c = json.SourceId;
+            acc.Phone = json.Phone;
+            acc.Website = json.Website;
+            upsertAccountMap.put(acc.SourceId__c, acc);
+            
+        }
+
+        Schema.sObjectField sourceIdField = Account.field.SourceId__c;
+        Database.UpsertResult[] upsertAccResults = Database.Upsert(upsertAccountMap.values(), sourceIdField, false);
+        System.debug('Upsert Account Results===>' + upsertAccResults);
+        
+        Map<String, String> accountIdMap = new Map<String, String>();
+
+        for (Integer i = 0; i < upsertAccResults.size(); i++) {
+            Database.UpsertResult accRes = upsertAccResults[i];
+            Account acc = upsertAccountMap.values()[i];
+
+            if (accRes.isSuccess()) {
+                acc.Id = accRes.getId();
+                accountIdMap.put(acc.SourceId__c, acc.Id); 
+                System.debug('Successfully upserted Account===>' + acc);
+            } 
+        }
+
+        for (TetPracticePaper8_Apex_Wrapper json : jsonList) {
+            String accountId = accountIdMap.get(json.SourceId);
+
+            for (TetPracticePaper8_Apex_Wrapper.Contact jsonCon : json.Contacts) {
+                
+                Contact con = new Contact();
+                con.FirstName = jsonCon.FirstName;
+                con.LastName = jsonCon.LastName;
+                con.SourceId__c = jsonCon.SourceId;
+                con.Email = jsonCon.Email;
+                con.AccountId = accountId;
+                upsertContactList.add(con);
+
+            }
+        }
+
+        Schema.sObjectField contactSourceIdField = Contact.field.SourceId__c;
+        Database.UpsertResult[] upsertConResults = Database.Upsert(upsertContactList, contactSourceIdField, false);
+        System.debug('Upsert Contact Results===>' + upsertConResults);
+        
+        List<Map<String, Object>> responseList = new List<Map<String, Object>>();
+        Boolean hasErrors = false;
+        Boolean hasPartialSuccess = false;
+        
+        for (Integer i = 0; i < upsertAccResults.size(); i++) {
+            Map<String, Object> accResponse = new Map<String, Object>();
+            Database.UpsertResult accRes = upsertAccResults[i];
+            Account acc = upsertAccountMap.values()[i];
+            
+            if (accRes.isSuccess()) {
+                System.debug('Account upsert successful===>' + accRes.getId());
+
+                accResponse.put('Status', 200);
+                accResponse.put('accountId', accRes.getId());
+                
+                List<String> contactIds = new List<String>();
+                for (Database.UpsertResult conRes : upsertConResults) {
+                    if (conRes.isSuccess()) {
+                        contactIds.add(conRes.getId());
+                        System.debug('Contact upsert successful===>' + conRes.getId());
+                    } else {
+                        hasErrors = true;
+                        System.debug('ContactUpsert Error===> ' + conRes.getErrors()[0].getMessage());
+
+                        Map<String, Object> contactError = new Map<String, Object>();
+                        contactError.put('Status', 400);
+                        contactError.put('Error', 'Contact Error: ' + conRes.getErrors()[0].getMessage());
+                        responseList.add(contactError);
+                    }
+                }
+                accResponse.put('Contacts', contactIds);
+                responseList.add(accResponse);
+            } else {
+                hasErrors = true;
+                System.debug('Account Upsert Error===>' + accRes.getErrors()[0].getMessage());
+
+                accResponse.put('Status', 400);
+                accResponse.put('Error', 'Account Error: ' + accRes.getErrors()[0].getMessage());
+                responseList.add(accResponse);
+            }
+        }
+
+        if (hasErrors && responseList.size() > 0) {
+            res.statusCode = 207;  
+        } else if (hasErrors) {
+            res.statusCode = 400; 
+        } else {
+            res.statusCode = 200; 
+        }
+        
+        res.responseBody = Blob.valueOf(JSON.serialize(responseList));
+        System.debug('Final Response===>' + JSON.serialize(responseList));
+    	return JSON.serialize(responseList);
+    
+    
+    
+    }
+}
