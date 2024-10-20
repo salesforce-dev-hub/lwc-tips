@@ -1,0 +1,57 @@
+@isTest
+public class PranavAPIQ2_Test {
+    static List<Opportunity> opList = new List<Opportunity>();
+    
+    @testSetup
+    static void setupTestData(){
+        Opportunity opp = new Opportunity(Name = 'Pranav', StageName = 'Closed Won', CloseDate = Date.today(), Amount = 1000);
+        insert opp;
+
+        Product2 prod = new Product2(Name = 'Test Product', IsActive = true);
+        insert prod;
+        
+        PricebookEntry pbe = new PricebookEntry(Pricebook2Id = Test.getStandardPricebookId(), Product2Id = prod.Id, UnitPrice = 1000, IsActive = true);
+        insert pbe;
+                
+        OpportunityLineItem oli1 = new OpportunityLineItem(OpportunityId = opp.Id, Quantity = 1, TotalPrice = 1000, PricebookEntryId = pbe.Id);
+        insert oli1;
+        
+        Contact c = new Contact(LastName = 'Pranav Chouhan', Email = 'pranavchouhan@cyntexa.com');
+        insert c;
+        
+        OpportunityContactRole ocr = new OpportunityContactRole(ContactId = c.Id, OpportunityId = opp.Id);
+        insert ocr;
+        
+        opList.add(opp);
+        
+    }
+    @isTest 
+    static void testApi(){
+        //System.debug(opList[0]);
+        Opportunity opp = [Select Id From Opportunity LIMIT 1];
+        Test.setMock(HTTPCalloutMock.class , new JsonAPIMock());
+       // Test.startTest();
+        
+        PranavAPIQ2.sendPaymentLink(opp.Id);
+        //Test.stopTest();
+        
+    }
+
+}
+
+--------------------------------------------------------------------------
+
+@isTest
+global class JsonAPIMock implements HTTPCalloutMock {
+    global HTTPResponse respond(HTTPRequest req){
+        Final String JsonStripeEndpointUrl = 'https://api.stripe.com/v1/checkout/sessions';
+        HTTPResponse res = new HTTPResponse();
+        if(req.getEndPoint() == JsonStripeEndpointUrl && req.getMethod() == 'POST'){
+            String json = 'Payment Link Generated Successfully';
+            res.setBody(json);
+            res.setStatus('200');
+        }
+        return res;
+    }
+
+}
