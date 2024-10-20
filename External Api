@@ -1,0 +1,87 @@
+public class PranavAPIQ2 {
+    @future(callout =true)
+    public static voId sendPaymentLink(Set<Id> oppIds){
+        System.debug('ENter into api');
+                                                                                                                                                                                                                                                                                                        
+        
+        HttpRequest req = new HttpRequest();
+        req.setEndpoint('https://api.stripe.com/v1/checkout/sessions');
+        req.setMethod('POST');
+        //Authentication || Authorization
+        String apiKey = 'sk_test_51PbfaVRo56aldIJM8UyoBlcrbeVfdL1gTpDBAQV1w2xqiswZwYPEMi1CuUeOtamVuMwUGIH8XSiRTxyImdxp7btS00ceU6gPXP';
+        req.setHeader('Authorization', 'Bearer '+apiKey);
+        req.setHeader('Content-Type', 'application/x-www-form-urlencoded');
+        
+        
+        List<Opportunity> opportunities=[select Id,Amount,(Select Id,Name,UnitPrice,Quantity from OpportunityLineItems) from Opportunity where Id=:oppIds];
+        
+        map<Id,List<String>> mailToSend=new map<Id,List<String>>();
+        
+        List<opportunityContactRole> oppContacts=[Select Id,OpportunityId,Contact.email from OpportunityContactRole where OpportunityId=:oppIds];
+        System.debug(oppContacts);
+
+        
+        for(OpportunityContactRole mail : oppContacts){
+            if(mailToSend.containsKey(mail.OpportunityId)){
+                if(mail.Contact.email!=null){
+                    List<String> emailList=mailToSend.get(mail.OpportunityId);
+                    emailList.add(mail.Contact.email);
+                    mailToSend.put(mail.OpportunityId,emailList);
+                }
+            }
+            else{
+                if(mail.Contact.email!=null){
+                    mailToSend.put(mail.OpportunityId,new List<String>{mail.Contact.email});
+                }
+                else{
+                	mailToSend.put(mail.OpportunityId,new List<String>{});
+                }
+            }
+        }
+        
+        Http htp=new Http();
+        HttpResponse res=new HttpResponse();
+        
+        for(integer i=0; i<opportunities.size(); i++){ 
+            String body='';
+            if(opportunities[i].amount!=null)
+            {
+            	body='line_items['+i+'][price_data][unit_amount]='+integer.valueOf(opportunities[i].amount);
+            }
+            else
+                body='&line_items['+i+'][price_data][unit_amount]='+0;
+           
+            for(OpportunityLineItem oli:opportunities[i].opportunityLineItems){
+                body+='&line_items['+i+'][quantity]='+Integer.valueOf(oli.quantity);
+                body+='&line_items['+i+'][price_data][currency]='+EncodingUtil.urlEncode('INR','UTF-8');
+                body+='&line_items['+i+'][price_data][product_data][name]='+EncodingUtil.urlEncode(oli.name,'UTF-8');
+            }
+            
+            body+='&mode='+EncodingUtil.urlEncode('payment','UTF-8');
+            body+='&success_url='+EncodingUtil.urlEncode('https://cyntexa.com','UTF-8');
+            
+            req.setBody(body);
+            System.debug(body);
+            res=htp.send(req);
+            
+            System.debug(res.getBody());
+            
+            String responseBody=res.getBody();
+            map<String,Object> responseData=(map<String,Object>)JSON.deserializeUntyped(res.getBody());
+            
+            String url=(String)responseData.get('url');
+            
+            System.debug('url : '+url);
+            
+            if(mailToSend.containsKey(opportunities[i].Id)){
+                Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
+                mail.setToAddresses(mailToSend.get(opportunities[i].Id));
+                mail.setSubject('payment link');
+                mail.setPlainTextBody(url);
+                Messaging.SendEmailResult[] results = Messaging.sendEmail(new Messaging.SingleEmailMessage[] { mail });
+                System.debug(results);
+            } 
+        }
+    }
+
+}
