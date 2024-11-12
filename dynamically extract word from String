@@ -1,0 +1,16 @@
+Lead Name : Pranav Heyaaa
+Lead Id : 00QdL00000BWe2PUAT
+Lead Status : Open - Not Contacted Claim button
+
+
+
+dynamically extract 00QdL00000BWe2PUAT from this string in apex
+
+
+
+Apex
+String text = 'Lead Name : Pranav Heyaaa\n Lead Id : 00QdL00000BWe2PUAT\n Lead Status : Open - Not Contacted Claim button';
+
+String leadId = text.split('\n')[1].split(':')[1].trim();
+
+System.debug(leadId); // Output: 00QdL00000BWe2PUAT
