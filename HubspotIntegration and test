@@ -1,0 +1,282 @@
+public class HubspotIntegration {
+    
+    /*public class Properties{
+        public String email;
+        public String firstname;
+        public String lastname;
+        public String phone;
+    }*/
+    
+	@future(callout =true)
+    public static void main(Set<Id> newCreatedContactIds){
+        HttpRequest req = new HttpRequest();
+        req.setEndpoint('https://api.hubapi.com/crm/v3/objects/contacts/batch/create');
+        req.setMethod('POST');
+        //Authentication || Authorization
+        String apiKey = 'pat-na1-26192a00-******************';
+        req.setHeader('Authorization', 'Bearer '+apiKey);
+        req.setHeader('Content-Type', 'application/json');
+        
+        List<Contact> conList = [Select Id , FirstName , LastName , Email , Phone  From Contact Where Id IN :newCreatedContactIds];
+        Map<String , Contact> conMap = new Map<String , Contact>();
+        for(Contact c : conList){
+            conMap.put(c.Email , c);
+        }
+        
+        System.debug('1'+conList);
+        
+        
+        string properties ='';
+        System.debug('2'+properties);
+        if(conList.size() != 0){
+            system.debug('11');
+        	for(Integer i=0 ; i < conList.size() ; i++){
+                System.debug('12');
+                if(conList.size() == 1){
+                    System.debug('13');
+                    String prop = '{\"properties\":{\"email\":\"'+(String)conList[i].Email+'\",\"firstname\":\"'+(String)conList[i].Firstname+'\",\"lastname\":\"'+(String)conList[i].LastName+'\"}}';
+                    System.debug('prop---'+prop);
+                    properties = properties+prop;
+                    System.debug('properties---'+properties);
+                    break;
+                }
+                else if(conList.size() > 1){
+                    System.debug('14');
+                    if(i == conList.size()-1){
+                        String prop = '{\"properties\":{\"email\":\"'+(String)conList[i].Email+'\",\"firstname\":\"'+(String)conList[i].Firstname+'\",\"lastname\":\"'+(String)conList[i].LastName+'\"}}';
+                        System.debug('prop---'+prop);
+                        properties = properties+prop;
+                        System.debug('properties---'+properties);
+                    }
+                    else{
+                        System.debug('15');
+                        String prop = '{\"properties\":{\"email\":\"'+(String)conList[i].Email+'\",\"firstname\":\"'+(String)conList[i].Firstname+'\",\"lastname\":\"'+(String)conList[i].LastName+'\"}},';
+                        System.debug('prop---'+prop);
+                        properties = properties+prop;
+                        System.debug('properties---'+properties);
+                    }
+                    
+                }
+            }    
+        }
+       
+		System.debug('properties---'+properties);
+        
+        String body = '{\"inputs\":['+ properties +']}';
+        System.debug('body'+body);
+        /*Properties prop = new Properties();
+        prop.email = c.Email;
+        prop.firstname = c.FirstName;
+        prop.lastname = c.LastName;
+        prop.phone = c.Phone;
+        mapOfProperties.put('properties' , prop);
+        
+        String body = JSON.serialize(mapOfProperties);
+        */
+        req.setBody(body);
+        HttpResponse res = new HttpResponse();
+        Http htp = new Http();
+        res = htp.send(req);
+        
+        Map<String , object> responsebody = (Map<String , object>)JSON.deserializeUntyped(res.getBody());
+
+        System.debug(responsebody);
+        /*Map<String, Object> firstMap = (Map<String, Object>)responsebody[0];
+		Map<String, Object> respResult = (Map<String, Object>)firstMap.get('results');*/
+        List<Object> respResult =(List<Object>) responsebody.get('results');
+        //Map<string,object> obj = (Map<string,object>)respResult[0];
+        //Map<string,object> objEmail = (Map<string,object>)obj.get('properties');
+		//System.debug(obj.get('id'));
+        //System.debug(objEmail.get('email'));
+        
+       	List<Contact> contactsToUpdate = new List<Contact>();
+        
+        for(Integer i = 0 ; i < respResult.size() ; i++){
+            Map<string,object> obj = (Map<string,object>)respResult[0];
+            Map<string,object> objEmail = (Map<string,object>)obj.get('properties');
+            String respId = (String)obj.get('id');
+            System.debug(respId);
+            
+            String mail = (String)objEmail.get('email');	
+            System.debug(mail);
+
+            Contact c = conMap.get(mail);
+            System.debug(c);
+            c.Hubspot_Id__c = respId;
+            contactsToUpdate.add(c);
+        }
+        System.debug(contactsToUpdate);
+        Update contactsToUpdate;
+        
+        /*String hubemail = (String)responsebody.get('email');
+        System.debug(hubId);
+        System.debug(hubemail);
+        c.Hubspot_Id__c = hubId;
+        Update c;*/
+		
+        
+    } 
+}
+
+=============================================================================================================================================================
+
+public class HubspotUpdate {
+    
+	/*@future(callout =true)
+    public static void main(Set<Id> UpdateCreatedContactIds){ 
+        
+        List<Contact> conList = [Select Id , FirstName , LastName , Email , Phone , Hubspot_Id__c  From Contact Where Id IN :UpdateCreatedContactIds];
+        
+        HttpRequest req = new HttpRequest();
+        req.setEndpoint('https://api.hubapi.com/crm/v3/objects/contacts/batch/update');
+        req.setMethod('POST');
+        //Authentication || Authorization
+        String apiKey = 'pat-na1-26192a00-*********************';
+        req.setHeader('Authorization', 'Bearer '+apiKey);
+        req.setHeader('Content-Type', 'application/json');
+        
+        
+        string properties ='';
+        System.debug('2'+properties);
+        if(conList.size() != 0){
+            system.debug('11');
+        	for(Integer i=0 ; i < conList.size() ; i++){
+                System.debug('12');
+                if(conList.size() == 1){
+                    System.debug('13');
+                    String prop = '{\"id\":'+(String)conList[i].Hubspot_Id__c+',\"properties\":{\"email\":\"'+(String)conList[i].Email+'\",\"firstname\":\"'+(String)conList[i].Firstname+'\",\"lastname\":\"'+(String)conList[i].LastName+'\"}}';
+                    System.debug('prop---'+prop);
+                    properties = properties+prop;
+                    System.debug('properties---'+properties);
+                    break;
+                }
+                else if(conList.size() > 1){
+                    System.debug('14');
+                    if(i == conList.size()-1){
+                        String prop = '{\"id\":'+(String)conList[i].Hubspot_Id__c+',\"properties\":{\"email\":\"'+(String)conList[i].Email+'\",\"firstname\":\"'+(String)conList[i].Firstname+'\",\"lastname\":\"'+(String)conList[i].LastName+'\"}}';
+                        System.debug('prop---'+prop);
+                        properties = properties+prop;
+                        System.debug('properties---'+properties);
+                    }
+                    else{
+                        System.debug('15');
+                        String prop = '{\"id\":'+(String)conList[i].Hubspot_Id__c+',\"properties\":{\"email\":\"'+(String)conList[i].Email+'\",\"firstname\":\"'+(String)conList[i].Firstname+'\",\"lastname\":\"'+(String)conList[i].LastName+'\"}},';
+                        System.debug('prop---'+prop);
+                        properties = properties+prop;
+                        System.debug('properties---'+properties);
+                    }
+                    
+                }
+            }    
+        }
+       
+		System.debug('properties---'+properties);
+        
+        String body = '{\"inputs\":['+ properties +']}';
+        System.debug('body'+body);
+        
+        req.setBody(body);
+        HttpResponse res = new HttpResponse();
+        Http htp = new Http();
+        res = htp.send(req);
+    } */
+    @future(callout=true)
+    public static void main(Set<Id> updateContactIds) {
+        List<Contact> conList = [SELECT Id, FirstName, LastName, Email, Phone, Hubspot_Id__c FROM Contact WHERE Id IN :updateContactIds];
+    
+        HttpRequest req = new HttpRequest();
+        req.setEndpoint('https://api.hubapi.com/crm/v3/objects/contacts/batch/update');
+        req.setMethod('POST');
+        String apiKey = 'pat-na1-26192a00-************************';
+        req.setHeader('Authorization', 'Bearer ' + apiKey);
+        req.setHeader('Content-Type', 'application/json');
+    
+        String properties = '';
+        for (Contact c : conList) {
+            String prop = '{\"id\":\"' + c.Hubspot_Id__c + '\",\"properties\":{\"email\":\"' + c.Email + '\",\"firstname\":\"' + c.FirstName + '\",\"lastname\":\"' + c.LastName + '\"}}';
+            properties += prop + (c == conList[conList.size()-1] ? '' : ',');
+        }
+    
+        String body = '{\"inputs\":[' + properties + ']}';
+        req.setBody(body);
+    
+        Http h = new Http();
+        HttpResponse res = h.send(req);
+    
+    }
+
+}
+
+=========================================================================================================================================================================================================================================
+
+Test Class
+
+
+
+@isTest
+public class HubspotIntegrationTest {
+    
+    @isTest
+    static void testCreateHubSpotContact() {
+        Test.startTest();
+        
+        Contact con = new Contact(FirstName = 'HubSpot', LastName = 'Test', Email = 'hubspot@test.com');
+        insert con;
+        
+        Test.setMock(HttpCalloutMock.class, new HubspotCalloutMock());
+        
+        Set<Id> contactIds = new Set<Id>();
+        contactIds.add(con.Id);
+        HubspotIntegration.main(contactIds);
+        
+        Test.stopTest();
+    }
+    
+    @isTest
+    static void testUpdateHubSpotContact() {
+        Test.startTest();
+        
+        Contact con = new Contact(FirstName = 'HubSpot', LastName = 'UpdateTest', Email = 'hubspotupdate@test.com', Hubspot_Id__c = '12345');
+        insert con;
+        
+        Test.setMock(HttpCalloutMock.class, new HubspotCalloutMock());
+        
+        Set<Id> contactIds = new Set<Id>();
+        contactIds.add(con.Id);
+        HubspotUpdate.main(contactIds);
+                
+        Test.stopTest();
+    }
+    
+    @isTest
+    static void testDeleteHubSpotContact() {
+        Test.startTest();
+        
+        Test.setMock(HttpCalloutMock.class, new HubspotCalloutMock());
+        
+        Contact con = [SELECT Id, Hubspot_Id__c FROM Contact WHERE Hubspot_Id__c != NULL LIMIT 1];
+        HubspotDelete.main(con.Id);
+                
+        Test.stopTest();
+    }
+}
+
+
+=============================
+@isTest
+global class HubspotCalloutMock implements HttpCalloutMock {
+    
+    global HTTPResponse respond(HTTPRequest req) {
+        HttpResponse res = new HttpResponse();
+        res.setHeader('Content-Type', 'application/json');
+        res.setStatusCode(200);
+        
+        if (req.getMethod() == 'POST') {
+            res.setBody('{"results": [{"id": "12345", "properties": {"email": "hubspot@test.com"}}]}');
+        } else if (req.getMethod() == 'DELETE') {
+            res.setBody('{"status": "deleted"}');
+        }
+        
+        return res;
+    }
+}
