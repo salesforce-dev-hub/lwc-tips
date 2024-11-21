@@ -1,0 +1,73 @@
+<template>
+    <!-- <template if:true={showMainModal}>
+        <lightning-quick-action-panel header="Edit Fields Action">
+            <lightning-combobox label="Select Pricebook" options={options} onchange={handlePricebookChange}>
+            </lightning-combobox>
+        </lightning-quick-action-panel>
+    </template> -->
+    <lightning-quick-action-panel header="Edit Fields Action">
+        <template if:true={showMainModal}>
+        
+            <lightning-combobox label="Select Pricebook" options={options} onchange={handlePricebookChange}>
+            </lightning-combobox>
+        </template>
+
+        <!-- modal start -->
+    <template if:false={showMainModal}>
+        <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+
+            <div>
+                <div  style="position: relative;left: 450px; top: 4px;">
+                    <lightning-button variant="brand" label="Add Products" title="Primary action"
+                        onclick={handleAddProductsClick} class="slds-m-left_x-small"></lightning-button>
+                </div>
+                <div style="position: relative;left: 580px;top: -28px;">
+                    <lightning-button variant="brand" label="Calculate" title="Primary action"
+                        onclick={handleCalculateClick} class="slds-m-left_x-small"></lightning-button>
+                </div>
+                <div style="position: relative;left: 680px;top: -60px;">
+                    <lightning-button variant="brand" label="Save" title="Primary action" onclick={handleSaveClick}
+                        class="slds-m-left_x-small" disabled={saveDisable}></lightning-button>
+                </div>
+
+            </div>
+            <br>
+
+            <div class="slds-grid slds-gutters slds-wrap">
+                <div class="slds-col slds-size_5-of-12">
+                    <lightning-input type="date" name="input1" label="Start Date" onchange={handleStartDate} value={startDate}></lightning-input>
+                </div>
+                <div class="slds-col slds-size_5-of-12">
+                    <lightning-input type="date" name="input2" label="End Date" onchange={handleEndDate} value={endDate}></lightning-input>
+                </div>
+                <div class="slds-col slds-size_2-of-12">
+                    <lightning-input type="number" name="input3" label="Discount" onchange={handleDiscount} ></lightning-input>
+                </div>
+            </div>
+            <br>
+
+            <lightning-card>
+                <lightning-datatable key-field="id" data={selectedRows} columns={selectedProductsColumns}>
+                </lightning-datatable>
+                <br>
+                <span >Net Total : {totalSumOfAmount}</span>
+            </lightning-card>
+            <br>
+            <lightning-card>
+                <template if:true={showAllProducts}>
+                    <lightning-datatable key-field="id" data={allProducts} columns={allProductsColumns}
+                        onrowselection={handleRowSelection}>
+                    </lightning-datatable>
+                </template>
+            </lightning-card>
+
+
+        </div>
+    </template>
+
+    </lightning-quick-action-panel>
+    
+
+    
+
+</template>
