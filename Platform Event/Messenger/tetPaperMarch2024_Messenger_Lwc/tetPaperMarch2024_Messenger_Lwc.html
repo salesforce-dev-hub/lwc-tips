@@ -1,0 +1,80 @@
+<template>
+    <div class="slds-box slds-theme_default">
+        <div class="slds-grid slds-wrap">
+            <div class="slds-col slds-size_4-of-12">
+                <lightning-layout>
+                    <lightning-layout-item>
+                        <lightning-vertical-navigation onselect={handleSelect} class="navigation">
+                            <lightning-vertical-navigation-section label={currentLogInUser}>
+                                <template for:each={allUsers} for:item="user">
+                                    <div key={user.Id}>
+                                        <lightning-vertical-navigation-item-icon
+                                            label={user.Name}
+                                            name={user.Id}
+                                            icon-name= "utility:user">
+                                        </lightning-vertical-navigation-item-icon>
+                                    </div>
+                                </template>
+                                
+                                
+                            </lightning-vertical-navigation-section>
+                        </lightning-vertical-navigation>
+                    </lightning-layout-item>
+                    
+                </lightning-layout>
+            </div>
+            <div class="slds-col slds-size_8-of-12">
+                <div class="chatHeader" >
+                    {selectedUser}
+                </div>
+                <div class="chatArea " >
+                    <div class="slds-scrollable_y"  tabindex="0">
+                        <div class="slds-text-longform textArea">
+                            <template for:each={chatOfUser} for:item="chat">
+                                <div key={chat} >
+                                    <div if:true={chat.from} class="from">
+                                        <span style="    position: relative; top: 13px;"><lightning-formatted-date-time
+                                            value={chat.CreatedDate}
+                                            year="numeric"
+                                            day="2-digit"
+                                            month="long"
+                                            hour="2-digit"
+                                            minute="2-digit"
+                                        >
+                                        </lightning-formatted-date-time></span>
+                                        <span style="margin-left: 10px; font-weight :bold; background: #5dc4ff; text-decoration: none ; color: #000000; border-radius: 50px; padding : 10px 20px; border: 2px solid #5dc4ff;">{chat.Message__c}</span>
+                                    </div>
+                                    <br>
+                                    <div if:true={chat.to} class="to">
+                                        <span style="font-weight :bold; font-weight :bold; background: #323232; text-decoration: none ; color: #ffffff; border-radius: 50px; padding : 10px 20px; border: 2px solid #323232; ">{chat.Message__c}</span>
+                                        <span style="margin-left: 10px;"><lightning-formatted-date-time
+                                            value={chat.CreatedDate}
+                                            year="numeric"
+                                            day="2-digit"
+                                            month="long"
+                                            hour="2-digit"
+                                            minute="2-digit"
+                                        >
+                                        </lightning-formatted-date-time></span>
+                                        
+                                    </div>
+                                    <br>
+                                </div>
+                            </template>
+                        </div>
+                      </div>
+                </div>
+                <div class="chatFooter slds-grid slds-wrap" >
+                    <div class="slds-col slds-size_11-of-12 inputMessage">
+                        <lightning-input type="text" placeholder="type here..." onchange={handleMessageType}></lightning-input>
+                    </div>
+                    <div class="slds-col slds-size_1-of-12 sendbutton">
+                        <lightning-button-icon icon-name="utility:play" onclick={handleSend} variant="brand" alternative-text="Settings"></lightning-button-icon>
+                    </div>
+                    
+
+                </div>
+            </div>
+        </div>
+    </div>
+</template>

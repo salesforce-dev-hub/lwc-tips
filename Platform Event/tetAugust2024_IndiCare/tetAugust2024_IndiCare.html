@@ -1,0 +1,122 @@
+<template>
+    <div class="slds-box slds-theme_default">
+        <lightning-tabset active-tab-value="Contact">
+            <lightning-tab label="Contact" value="Contact" onactive={handleActiveTab}></lightning-tab>
+            <lightning-tab label="Oppportunity" value="Opportunity" onactive={handleActiveTab}></lightning-tab>
+        </lightning-tabset>
+
+        <template if:true={showContactTabset}>
+            <lightning-tabset active-tab-value="Web">
+                <lightning-tab label="Web" value="Web" onactive={handleActiveTabOfContact}></lightning-tab>
+                <lightning-tab label="Phone Inquiry" value="Phone Inquiry" onactive={handleActiveTabOfContact}></lightning-tab>
+                <lightning-tab label="Partner Referral" value="Partner Referral" onactive={handleActiveTabOfContact}></lightning-tab>
+                <lightning-tab label="Purchased List" value="Purchased List" onactive={handleActiveTabOfContact}></lightning-tab>
+                <lightning-tab label="Other" value="Other" onactive={handleActiveTabOfContact}></lightning-tab>
+            </lightning-tabset>
+
+            <div class="slds-grid slds-wrap slds-gutters slds-p-around_small">
+                <template for:each={recordList} for:item="record">
+                    <lightning-card key={record.id} class="slds-col slds-size_3-of-12 slds-p-around_small">
+                        <strong class="slds-p-horizontal_small">{activeLeadSourceTab}</strong>
+                        <template for:each={record.keyValuePairs} for:item="field">
+                            <div key={field.key}>
+                                <p class="slds-p-horizontal_small"><strong>{field.key}</strong>: {field.value}</p>
+                                
+                            </div>
+                        </template>
+                        <br>
+                                <lightning-button 
+                                    variant="neutral" 
+                                    label="Edit" 
+                                    title="Edit" 
+                                    data-id={record.id}
+                                    onclick={handleEdit}>
+                                </lightning-button>
+                                <lightning-button 
+                                    variant="neutral" 
+                                    label="Show Details" 
+                                    title="Show Details" 
+                                    data-id={record.id}
+                                    onclick={handleShowDetails}>
+                                </lightning-button>
+                    </lightning-card>
+                </template>
+            </div>
+            
+        </template>
+
+        <template if:true={showOpportunityTabset}>
+            <lightning-tabset active-tab-value="Prospecting">
+                <lightning-tab label="Prospecting" value="Prospecting" onactive={handleActiveTabOfOpportunity}></lightning-tab>
+                <lightning-tab label="Qualification" value="Qualification" onactive={handleActiveTabOfOpportunity}></lightning-tab>
+                <lightning-tab label="Needs Analysis" value="Needs Analysis" onactive={handleActiveTabOfOpportunity}></lightning-tab>
+                <lightning-tab label="Value Proposition" value="Value Proposition" onactive={handleActiveTabOfOpportunity}></lightning-tab>
+                <lightning-tab label="Closed Won" value="Closed Won" onactive={handleActiveTabOfOpportunity}></lightning-tab>
+                <lightning-tab label="Closed Lost" value="Closed Lost" onactive={handleActiveTabOfOpportunity}></lightning-tab>
+                <lightning-tab label="All" value="All" onactive={handleActiveTabOfOpportunity}></lightning-tab>
+            </lightning-tabset>
+
+            <div class="slds-grid slds-wrap slds-gutters slds-p-around_small">
+                <template for:each={recordList} for:item="record">
+                    <lightning-card key={record.id} class="slds-col slds-size_3-of-12 slds-p-around_small">
+                        <strong class="slds-p-horizontal_small">{activeStageNameTab}</strong>
+                        <template for:each={record.keyValuePairs} for:item="field">
+                            <div key={field.key}>
+                                
+                                <p class="slds-p-horizontal_small"><strong>{field.key}</strong>: {field.value}</p>
+                                
+                            </div>
+                        </template>
+                        <br>
+                                <lightning-button 
+                                    variant="neutral" 
+                                    label="Edit" 
+                                    title="Edit" 
+                                    data-id={record.id}
+                                    onclick={handleEdit}>
+                                </lightning-button>
+                                <lightning-button 
+                                    variant="neutral" 
+                                    label="Show Details" 
+                                    title="Show Details" 
+                                    data-id={record.id}
+                                    onclick={handleShowDetails}>
+                                </lightning-button>
+                    </lightning-card>
+                </template>
+                
+            </div>
+        </template>
+
+        <template if:true={showEditForm}>
+            <lightning-record-edit-form 
+                object-api-name={objectApiName}
+                record-id={recordIdToEdit}
+                onsuccess={handleSuccess}
+                onerror={handleError}>
+                <template for:each={fields} for:item="field">
+                    <lightning-input-field 
+                        key={field}
+                        field-name={field}>
+                    </lightning-input-field>
+                </template>
+                <lightning-button variant="neutral" type="submit" label="Save"></lightning-button>
+                <lightning-button variant="neutral" label="Cancel" onclick={handleCancel}></lightning-button>
+            </lightning-record-edit-form>
+        </template>
+
+        <template if:true={showDetailsForm}>
+            <lightning-record-view-form
+                object-api-name={objectApiName}
+                record-id={recordIdToEdit}>
+                <template for:each={fields} for:item="field">
+                    <lightning-output-field 
+                        key={field}
+                        field-name={field}>
+                    </lightning-output-field>
+                </template>
+                <lightning-button variant="neutral" label="Cancel" onclick={handleCancel}></lightning-button>
+            </lightning-record-view-form>
+        </template>
+    </div>
+</template>

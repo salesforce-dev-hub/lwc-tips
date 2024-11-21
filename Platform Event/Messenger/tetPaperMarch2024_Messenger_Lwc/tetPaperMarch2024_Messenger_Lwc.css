@@ -1,0 +1,44 @@
+.chatHeader{
+    position: relative;
+    padding: 1em;
+    height: 70px;
+    font-size: large;
+    font-weight :bold;
+}
+
+.chatArea{
+    position: relative;
+    padding: 1em;
+    height: 500px;
+    width: 100%;
+}
+
+.chatFooter{
+    position: relative;
+}
+
+.from{
+    width: 100%;
+    position: relative;
+    display: flex;
+    justify-content: flex-end;
+    
+    
+}
+
+.to{
+    width: 100%;
+    
+}
+
+.inputMessage{
+    position: relative;
+    padding: 10px;
+    
+}
+.sendbutton{
+    position: relative;
+    top: 10px;
+    padding: 20px;
+}
+

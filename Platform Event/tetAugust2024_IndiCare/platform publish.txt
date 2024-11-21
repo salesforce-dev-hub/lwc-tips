@@ -1,0 +1,19 @@
+public class Tet_August_2024_Platform_Event {
+    public static void publishEventopportunity(String objectName, List<Opportunity> oppList) {
+        for(Opportunity opp : oppList){
+            Tet_August_2024_Record_Update__e event = new Tet_August_2024_Record_Update__e();
+            event.ObjectName__c = (String)objectName;
+            event.RecordId__c = (String)opp.AccountId;
+            EventBus.publish(event);
+        }
+    }
+    public static void publishEventcontact(String objectName, List<Contact> conList) {
+        for(Contact con : conList){
+            Tet_August_2024_Record_Update__e event = new Tet_August_2024_Record_Update__e();
+            event.ObjectName__c = (String)objectName;
+            event.RecordId__c = (String)con.AccountId;
+            EventBus.publish(event);
+        }
+    }
+
+}
