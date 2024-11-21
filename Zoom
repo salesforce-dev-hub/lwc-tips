@@ -1,0 +1,42 @@
+public with sharing class CreateZoomMeeting {
+    
+    public static void createZoomWrapper(String topic , String startTime , Integer duration ){
+        CreateZoomMeeting.WrapperMeeting wrap = new CreateZoomMeeting.WrapperMeeting();
+        wrap.topicOfMeeting = topic;
+        wrap.typeOfMeeting = 2;
+        wrap.startTime = startTime;
+        wrap.durationOfMeeting = duration;
+        wrap.timezone = 'Asia/Kolkata';
+
+        String jsonString = JSON.serialize(wrap);
+        createMeeting(jsonString);
+    }
+
+
+    public static void createMeeting(String json){
+        HttpRequest req = new HttpRequest();
+        req.setBody(json);
+        req.setMethod('POST');
+        req.setHeader('Content-type', 'application/json');
+        req.setEndpoint('callout:Zoom_Integration/v2/users/me/meetings');
+        Http htp = new Http();
+        HttpResponse res = htp.send(req);
+
+        System.debug('Response Code : ' + res.getStatusCode());
+
+        if (res.getStatusCode() == 201) {
+            System.debug('Success');
+        } else {
+            System.debug('Failed');
+        }
+
+    }
+
+    public class WrapperMeeting{
+        public String topicOfMeeting{get;set;}
+        public Integer typeOfMeeting{get;set;}
+        public String startTime{get;set;}
+        public Integer durationOfMeeting{get;set;}
+        public String timezone{get;set;}
+    }
+}
