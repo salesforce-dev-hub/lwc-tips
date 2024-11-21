@@ -1,0 +1,107 @@
+<template>
+
+    <div class="slds-box slds-theme_default slds-grid slds-wrap">
+        <div class="searchbox slds-col slds-size_4-of-12">
+            <lightning-input
+                name="enter-search"
+                type="search"
+                onchange={handleSearch}
+            ></lightning-input>
+        </div>
+
+        <div class="refresh">
+            <lightning-button-icon icon-name="utility:refresh"  alternative-text="Settings" title="Settings" onclick={handleRefresh}></lightning-button-icon>
+        </div>
+        <div class="filter">
+            <lightning-combobox
+            name="progress"
+            value={priority}
+            placeholder="Priority"
+            options={options}
+            onchange={handlePriorityChange} ></lightning-combobox>
+        </div>
+    
+
+    <template if:true={showSpinner}>
+        <lightning-spinner alternative-text="Loading..." variant="brand"></lightning-spinner>
+    </template>
+
+        <div class="slds-var-p-around_small slds-col slds-size_12-of-12">
+            <template if:true={displayAccounts}>
+                <c-datatable-custom-types-for-picklist-inline-edit
+                    key-field="Id"
+                    data={displayAccounts} 
+                    columns={columns} 
+                    draft-values={draftValues} 
+                    onvalueselect={handleSelection}
+                    oncellchange={handleCellChange}
+                    onsave={handleSave}
+                    oncancel={handleCancel}
+                    sorted-by={sortBy}
+                    sorted-direction={sortDirection}
+                    onsort={doSorting}
+                    hide-checkbox-column>
+                </c-datatable-custom-types-for-picklist-inline-edit>
+            </template>
+        </div>
+
+
+        <!-- Pagination -->
+        <div class="slds-col slds-size_12-of-12">
+        <lightning-layout multiple-rows="true">
+            <lightning-layout-item size="12">
+                <div class="slds-align_absolute-center">
+                    <ul class="slds-button-group-row">
+                        <li class="slds-button-group-item">
+                            <lightning-button
+                                label="First"
+                                onclick={navigateToFirstPage}
+                                disabled={isFirstPage}>
+                            </lightning-button>
+                        </li>
+                        <li class="slds-button-group-item">
+                            <lightning-button
+                                label="Previous"
+                                onclick={navigateToPreviousPage}
+                                disabled={isPreviousDisabled}>
+                            </lightning-button>
+                        </li>
+                        <template if:true={showPageButtons}>
+                            <template if:true={pageNumbers.length}>
+                                <template for:each={pageNumbers} for:item="pageNumber">
+                                    <li class="slds-button-group-item" key={pageNumber}>
+                                        <button
+                                            data-id={pageNumber}
+                                            class="slds-button slds-button_neutral"
+                                            onclick={navigateToPage}>
+                                            {pageNumber}
+                                        </button>
+                                    </li>
+                                </template>
+                            </template>
+                        </template>
+                        
+                        <li class="slds-button-group-item">
+                            <lightning-button
+                                label="Next"
+                                onclick={navigateToNextPage}
+                                disabled={isNextDisabled}>
+                            </lightning-button>
+                        </li>
+                        <li class="slds-button-group-item">
+                            <lightning-button
+                                label="Last"
+                                onclick={navigateToLastPage}
+                                disabled={isLastPage}>
+                            </lightning-button>
+                        </li>
+                    </ul>
+                </div>
+            </lightning-layout-item>
+        </lightning-layout>
+        </div>
+        <!-- Pagination End -->
+
+
+    </div>
+</template>

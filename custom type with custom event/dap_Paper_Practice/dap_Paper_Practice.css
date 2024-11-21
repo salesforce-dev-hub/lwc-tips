@@ -1,0 +1,12 @@
+.cardSpinner{
+    position: relative;;
+}
+.filter{
+    position: relative;
+    left: 863px;
+}
+.refresh{
+    position: relative;
+    left: 850px;
+    top: 18px;
+}

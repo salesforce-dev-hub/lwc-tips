@@ -1,0 +1,8 @@
+<template>
+    <template for:each={tetJan2022CustomDataTableData} for:item="item" >
+        <div key={item.Id}  >
+            <!-- <lightning-button label={item.Id} value={item.Id} onclick={handleButtonClick}></lightning-button> -->
+            <button  value={item.Id} onclick={handleButtonClick} style="width: 50px; display: flex;" class="slds-button slds-button_neutral ">{item.Id}</button>
+        </div>
+    </template>
+</template>
