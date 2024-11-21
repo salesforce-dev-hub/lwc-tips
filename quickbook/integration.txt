@@ -1,0 +1,165 @@
+public class QuickbooksIntegration {
+    @future(callout =true)
+    public static void accountInsert(Set<Id> accIds){
+        List<Account> accList = [Select Id , Name From Account Where Id IN :accIds];
+        
+        List<Account> accToUpdate = new List<Account>();
+        
+        for(Account acc : accList){
+            String body = '{"DisplayName": "'+ acc.Name+'", "Title": "Mr", "FamilyName": "Test", "GivenName": "'+ acc.Name +'"}';
+            Http http = new Http();
+            HttpRequest request = new HttpRequest();
+            request.setEndpoint('callout:QuickBoooksNamedCred/v3/company/9341453404377030/customer?minorversion=73');
+            request.setHeader('Content-Type', 'application/json');
+            request.setHeader('Accept' , 'application/json');
+            request.setMethod('POST');
+            request.setBody(body);
+            //RestRequest req = RestContext.request; 
+            HttpResponse response = new HttpResponse();
+            response = http.send(request);
+            system.debug('>>>>response body'+response.getStatuscode());
+            system.debug('>>>>response body'+response.getBody());
+            
+            Map<String , Object> quickbookDetail = (Map<String , Object>)JSON.deserializeuntyped(response.getBody());
+            if(response.getStatuscode() == 200){
+                Map<String , Object> customer = (Map<String , Object>)quickbookDetail.get('Customer');
+                system.debug('>>>>customer>>'+customer);
+                system.debug('>>>>response>>'+customer.get('Id'));
+                String custId = String.valueOf(customer.get('Id'));
+                acc.Quickbook_Id__c = custId;
+                accToUpdate.add(acc);
+                
+            }  
+        }
+        
+        Update accToUpdate;
+        
+        
+        
+    }
+}
+
+============================================================================================================
+
+public class QuickbookSyncButton {
+    public static String accId { get; set; }
+    
+    public QuickbookSyncButton(ApexPages.StandardController stdController) {
+        accId =  String.valueOf(stdController.getRecord().Id);
+        System.debug('Id--'+accId);
+    }
+    
+    @future(Callout=True)
+    public static void main(){
+        System.debug('Sync');
+        Account a = [SELECT Id, Quickbook_Id__c FROM Account Where Id = :accId];
+        System.debug(a);
+        
+        string str = 'select * from Invoice where CustomerRef =\''+a.Quickbook_Id__c+'\'';
+        String query = EncodingUtil.urlEncode(str,'UTF-8');
+        System.debug('query--'+str);
+        Http http = new Http();
+        HttpRequest request = new HttpRequest();
+        request.setEndpoint('callout:QuickBoooksNamedCred/v3/company/9341453404377030/query?query='+query+'&minorversion=73');
+        request.setHeader('Content-Type', 'application/text');
+        request.setHeader('Accept' , 'application/json');
+        request.setMethod('GET');
+        
+        RestRequest req = RestContext.request; 
+        HttpResponse response = new HttpResponse();
+        response = http.send(request);
+        system.debug('>>>>response body'+response.getStatuscode());
+        system.debug('>>>>response invoice body---'+response.getBody());
+        
+        Map<String , Object> invoiceDetail = (Map<String , Object>)JSON.deserializeuntyped(response.getBody());
+        
+        Map<String , object> invoiceslist = (Map<String , object>)invoiceDetail.get('QueryResponse');
+        System.debug('invoiceslist--'+invoiceslist);
+        
+        List<Object> invoices = (List<Object>)invoiceslist.get('Invoice');
+        System.debug('invoices--'+invoices);
+        
+        List<Bill__c> billList = [SELECT Id, Account__c, Invoice_Id__c, TotalAmt__c FROM Bill__c];
+        List<String> setOfbill = new List<String>();
+        for(Bill__c bill : billList){
+            setOfbill.add(bill.Invoice_Id__c);
+        }
+        
+        List<Bill__c> newbilltoadd = new List<Bill__c>();
+        
+        for(Object inv : invoices){
+            System.debug('inv--'+inv);
+            Map<String , object> invoice = (Map<String , object>)inv;
+            System.debug('invoice--'+invoice);
+            if(!setOfbill.contains(String.valueOf(invoice.get('Id')))){
+                Bill__c newBill = new Bill__c();
+                newBill.Account__c = a.Id;
+                newBill.Invoice_Id__c = String.valueOf(invoice.get('Id'));
+                newBill.TotalAmt__c = (Decimal)(invoice.get('TotalAmt'));
+                newbilltoadd.add(newBill);
+            }
+            
+        }
+        System.debug('newbilltoadd--'+newbilltoadd);
+        Insert newbilltoadd;
+        
+        fetchPayment(a.Id);
+    }
+    
+    @future(Callout=True)
+    public static void fetchPayment(Id acId){
+        System.debug('Sync');
+        Account a = [SELECT Id, Quickbook_Id__c FROM Account Where Id = :acId];
+        System.debug(a);
+        
+        string str = 'select * from Payment where CustomerRef =\''+a.Quickbook_Id__c+'\'';
+        String query = EncodingUtil.urlEncode(str,'UTF-8');
+        System.debug('query--'+str);
+        
+        Http http = new Http();
+        HttpRequest request = new HttpRequest();
+        request.setEndpoint('callout:QuickBoooksNamedCred/v3/company/9341453404377030/query?query='+query+'&minorversion=73');
+        request.setHeader('Content-Type', 'application/text');
+        request.setHeader('Accept' , 'application/json');
+        request.setMethod('GET');
+        
+        RestRequest req = RestContext.request; 
+        HttpResponse response = new HttpResponse();
+        response = http.send(request);
+        system.debug('>>>>response body'+response.getStatuscode());
+        system.debug('>>>>response payment body---'+response.getBody());
+        
+        
+        Map<String , Object> paymentDetail = (Map<String , Object>)JSON.deserializeuntyped(response.getBody());
+        Map<String , object> paymentslist = (Map<String , object>)paymentDetail.get('QueryResponse');
+        System.debug('paymentslist--'+paymentslist);
+        
+        List<Object> payments = (List<Object>)paymentslist.get('Payment');
+        System.debug('payments--'+payments);
+        
+        List<Bill_Payment__c> billpaymentsList = [SELECT Id, Payment_Id__c, TotalAmt__c, Account__c FROM Bill_Payment__c];
+        List<String> setOfbillpayments = new List<String>();
+        for(Bill_Payment__c billPay : billpaymentsList){
+            setOfbillpayments.add(billPay.Payment_Id__c );
+        }
+        
+        List<Bill_Payment__c> newbillpaytoadd = new List<Bill_Payment__c>();
+        
+        for(Object pay : payments){
+            System.debug('pay--'+pay);
+            Map<String , object> payment = (Map<String , object>)pay;
+            System.debug('payment--'+payment);
+            if(!setOfbillpayments.contains(String.valueOf(payment.get('Id')))){
+                Bill_Payment__c newBillpay = new Bill_Payment__c();
+                newBillpay.Account__c = a.Id;
+                newBillpay.Payment_Id__c = String.valueOf(payment.get('Id'));
+                newBillpay.TotalAmt__c = (Decimal)(payment.get('TotalAmt'));
+                newbillpaytoadd.add(newBillpay);
+            } 
+        }
+        
+        System.debug('newbillpaytoadd--'+newbillpaytoadd);
+        Insert newbillpaytoadd;
+        
+    }
+}

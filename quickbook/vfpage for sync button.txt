@@ -1,0 +1,2 @@
+<apex:page Standardcontroller="Account" extensions="QuickbookSyncButton" action="{!main}">
+</apex:page>
