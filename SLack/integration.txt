@@ -1,0 +1,92 @@
+public class SlackApiIntegration {
+	@future(callout =true)
+    public static voId sendMessage(Set<Id> leadIds){
+        System.debug('ENter into api');
+                                                                                                                                                                                                                                                                                                        
+        
+        HttpRequest req = new HttpRequest();
+        req.setEndpoint('https://slack.com/api/chat.postMessage');
+        req.setMethod('POST');
+        //Authentication || Authorization
+        String apiKey = 'xoxb-8009593518658-8003147756758-eZFyyuKkqLBXcwRjvbpWSvjO';
+        req.setHeader('Authorization', 'Bearer '+apiKey);
+        req.setHeader('Content-Type', 'application/json');
+        
+        //List<Lead> newLeadList = ;
+        Http htp=new Http();
+        HttpResponse res=new HttpResponse();
+        
+        for(Lead ld : [SELECT Name, Id, Status FROM Lead Where Id IN :leadIds]){
+            String body  =  '{"channel":"C0809HFGB2N","blocks":[{"type":"section","text":{"type":"mrkdwn","text":"'+ +'Lead Name : '+ ld.Name +'\n Lead Id : '+ld.Id +'\n Lead Status : '+ ld.Status +'"},"accessory":{"type":"button","text":{"type":"plain_text","text":"Claim","emoji":true},"value":"click_me_123","action_id":"button-action"}}]}';
+        
+            req.setBody(body);
+            System.debug(body);
+            res=htp.send(req);
+            
+            System.debug(res.getBody());
+            
+        }
+               
+    }
+}
+
+===============================================================================================================
+
+@RestResource(urlMapping ='/claimButton')
+global class SlackHandleClaimButton {
+
+    @HttpPost
+    global static void myMethod(){
+        RestRequest req = RestContext.Request;
+        System.debug('str');
+		System.debug(' req.requestBody  '+ req.params);
+        String paramMap = req.params.get('payload');
+        Map<String,Object> parMap = (Map<String,Object>) Json.deserializeUntyped(paramMap);
+        Map<String,Object> userMap = (Map<String,Object>) parMap.get('user');
+        String userName =(String) userMap.get('username');
+        System.debug(userName);
+        
+        Map<String,Object> messageMap = (Map<String,Object>) parMap.get('message');
+        String text =(String) messageMap.get('text');
+        System.debug(text);
+        
+        String leadId = text.split('\n')[1].split(':')[1].trim();
+		System.debug(leadId);
+        
+        User usr = [Select Id From User Where Email like :userName+'@%'];
+        System.debug(usr.Id);
+        
+        Lead ld = [Select ID ,OwnerId From Lead Where Id = :leadId ];
+        ld.OwnerId = usr.Id;
+        
+        update ld;
+        
+        String url = (String) parMap.get('response_url');
+		System.debug(url);
+        SlackUpdateMessageApi.main(url);
+    }
+}
+
+===============================================================================================================
+
+public class SlackUpdateMessageApi {
+	@future(Callout= true)
+    public static void main(String url){
+        HttpRequest req = new HttpRequest();
+        req.setEndpoint(url);
+        req.setMethod('POST');
+        req.setHeader('Content-Type', 'application/json');
+        
+        
+        Http htp=new Http();
+        HttpResponse res=new HttpResponse();
+        
+        String body  =  '{"replace_original":"true","text":"Thanks for your request, we\'ll process it and get back to you."}';
+        
+        req.setBody(body);
+        System.debug(body);
+        res=htp.send(req);
+        
+        System.debug(res.getBody());
+    }
+}
