@@ -1,0 +1,262 @@
+public class FedexIntegration {
+    
+    @future(Callout=True)
+    public static void addressCheck(Set<Id> consignmentIds){
+        List<Consignment__c> newConsignmentList = [SELECT Id, Destination_Street_Address__c, Consignment_Weight__c, Status__c, Source_Street_Address__c, Source_city__c, Source_Country_Code__c, Destination_city__c, Destination_Country_Code__c,Source_Postal_Code__c, Destination_Postal_Code__c FROM Consignment__c Where Id IN :consignmentIds];
+        
+        System.debug('Enter into api--'+newConsignmentList);
+		
+        List<Consignment__c> consignmentsToUpdate = new List<Consignment__c>();
+        
+        for(Consignment__c con : newConsignmentList){
+            
+            Boolean sourceAdd = false;
+            Boolean destAdd = false;
+            
+            // for source address
+            HttpRequest req = new HttpRequest();
+            req.setEndpoint('https://apis-sandbox.fedex.com/address/v1/addresses/resolve');
+            req.setMethod('POST');
+            //Authentication || Authorization
+            String token = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzY29wZSI6WyJDWFMtVFAiXSwiUGF5bG9hZCI6eyJjbGllbnRJZGVudGl0eSI6eyJjbGllbnRLZXkiOiJsNzhkMzQ4Y2ZkNjg0NjRhYzNiMDkxZmNhNzhjM2UyZDFiIn0sImF1dGhlbnRpY2F0aW9uUmVhbG0iOiJDTUFDIiwiYWRkaXRpb25hbElkZW50aXR5Ijp7InRpbWVTdGFtcCI6IjA3LU5vdi0yMDI0IDAxOjMwOjEyIEVTVCIsImdyYW50X3R5cGUiOiJjbGllbnRfY3JlZGVudGlhbHMiLCJhcGltb2RlIjoiU2FuZGJveCIsImN4c0lzcyI6Imh0dHBzOi8vY3hzYXV0aHNlcnZlci1zdGFnaW5nLmFwcC5wYWFzLmZlZGV4LmNvbS90b2tlbi9vYXV0aDIifSwicGVyc29uYVR5cGUiOiJEaXJlY3RJbnRlZ3JhdG9yX0IyQiJ9LCJleHAiOjE3MzA5NjQ2MTIsImp0aSI6Ijc1ZTFiZDI0LTJiZTUtNDczMi1iZjAxLTdlMjAyMWVhOTIyNiJ9.CByiW1vu4vUBji1JAqdMQol8WQHWutOSnqrEFAHXxCKzj6M0WI8DESyc2wGW0t2D56AzkQAi-sVFWKpyuTUq6v8kn-GPLrGSoblFPqiR6Yt4VY7b0auCkK18CzcEokx36Wv41j9_eeOOngd346RQ0sqcvVIMTqdI8Ig9NLf-f4ueDC_qy_CarR-G8xI9_kMXMTHmpGTXhYcYAQgWKFJu1kY-529VvQzW8w4OuaL97Ih5f2aLzEi6f5fJ82lTrhIH8il8zI8z1gfmAPDul-0qeESP3xKOUqeoGdJt5be0514UltOPSwxGgQR6S7Iq81JZzmZYjDOM2-r4-YobzDg2Tt-_GiYiIHPN6YFYs9MwJgiyJJGJ5VcgQFGhiYf595H1PAUva3rfTiDJwN1zrxui4FBtSgGfLL7Dy85rBwI1qhfGpKzRy4zPya2IDw7bLMv71dvOw2_Uiie_0THbjDKB_26pFNMr28cJdCaQLC5cIZf_GuuBgTIAfsE4PPe9EKcwsm5OFmF6BE6mPuOHCAm1n6fcIUO88reucDiIIrCa0U5g9_xinFYwksfgZiRY8FWGOexQ1NxDPfuDi_RlkR9Jxy_CgZk2wjN1JB7qU0conqfaRXN3Gsz4pbjOia54UWpAt8iqOwbohDscmK6ShAX0v4X_poQKnf6yy_t5FaNIHfM';
+            req.setHeader('Authorization', 'Bearer '+token);
+            req.setHeader('Content-Type', 'application/json');
+            req.setHeader('X-locale', 'en_US');
+            
+            
+            /*Map<String , List<Map<String , Object>>> reqMap = new Map<String , List<Map<String , Object>>>();
+
+            Map<String , Map<String , Object>> addMap = new Map<String , Map<String , Object>>();
+
+            Map<String ,  Object> address = new Map<String , Object>();
+            address.put('streetLines', new List<String>{con.Source_Street_Address__c} );
+            address.put('city', con.Source_city__c);
+            address.put('countryCode', con.Source_Country_Code__c);
+            
+            addMap.put('address',address);
+            
+            reqMap.put('addressesToValidate',new List<Map<String , Map<String , Object>>>{addMap});
+            
+            System.debug('reqMap--'+reqMap);
+			*/
+            
+            String streetLines = con.Source_Street_Address__c;
+            String city = con.Source_city__c;
+            String postalCode = con.Source_Postal_Code__c; 
+            String countryCode = con.Source_Country_Code__c;
+            
+            String jsonBody1 = '{"addressesToValidate":[' +
+                '{"address":{' +
+                    '"streetLines":["' + streetLines + '"],' +
+                    '"city":"' + city + '",' +
+                    '"postalCode":"' + postalCode + '",' +
+                    '"countryCode":"' + countryCode + '"' +
+                '}}]}';
+            
+            System.debug('JSON Body: ' + jsonBody1);
+            
+            req.setBody(jsonBody1);
+                
+            Http htp=new Http();
+            HttpResponse res=new HttpResponse();
+            res=htp.send(req);
+            
+            system.debug('>>>>response body'+res.getStatuscode());
+            system.debug('>>>>response body'+res.getBody());
+            
+            Map<String , Object> response = (Map<String , Object>) JSON.deserializeuntyped(res.getBody());
+        
+            Map<String , Object> output= (Map<String , Object>)response.get('output');
+            
+            List<Object> resolvedAddresses = (List<Object>) output.get('resolvedAddresses'); 
+            Map<String , Object> resolvedAddress = (Map<String , Object>)resolvedAddresses[0];
+            String classification = String.valueOf(resolvedAddress.get('classification'));
+            
+            if(classification != 'UNKNOWN'){
+                sourceAdd = true;
+            }
+            
+       //******************************************************* For Destination address *****************************************************************************************
+            HttpRequest req2 = new HttpRequest();
+            req2.setEndpoint('https://apis-sandbox.fedex.com/address/v1/addresses/resolve');
+            req2.setMethod('POST');
+            //Authentication || Authorization
+            String token2 = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzY29wZSI6WyJDWFMtVFAiXSwiUGF5bG9hZCI6eyJjbGllbnRJZGVudGl0eSI6eyJjbGllbnRLZXkiOiJsNzhkMzQ4Y2ZkNjg0NjRhYzNiMDkxZmNhNzhjM2UyZDFiIn0sImF1dGhlbnRpY2F0aW9uUmVhbG0iOiJDTUFDIiwiYWRkaXRpb25hbElkZW50aXR5Ijp7InRpbWVTdGFtcCI6IjA3LU5vdi0yMDI0IDAxOjMwOjEyIEVTVCIsImdyYW50X3R5cGUiOiJjbGllbnRfY3JlZGVudGlhbHMiLCJhcGltb2RlIjoiU2FuZGJveCIsImN4c0lzcyI6Imh0dHBzOi8vY3hzYXV0aHNlcnZlci1zdGFnaW5nLmFwcC5wYWFzLmZlZGV4LmNvbS90b2tlbi9vYXV0aDIifSwicGVyc29uYVR5cGUiOiJEaXJlY3RJbnRlZ3JhdG9yX0IyQiJ9LCJleHAiOjE3MzA5NjQ2MTIsImp0aSI6Ijc1ZTFiZDI0LTJiZTUtNDczMi1iZjAxLTdlMjAyMWVhOTIyNiJ9.CByiW1vu4vUBji1JAqdMQol8WQHWutOSnqrEFAHXxCKzj6M0WI8DESyc2wGW0t2D56AzkQAi-sVFWKpyuTUq6v8kn-GPLrGSoblFPqiR6Yt4VY7b0auCkK18CzcEokx36Wv41j9_eeOOngd346RQ0sqcvVIMTqdI8Ig9NLf-f4ueDC_qy_CarR-G8xI9_kMXMTHmpGTXhYcYAQgWKFJu1kY-529VvQzW8w4OuaL97Ih5f2aLzEi6f5fJ82lTrhIH8il8zI8z1gfmAPDul-0qeESP3xKOUqeoGdJt5be0514UltOPSwxGgQR6S7Iq81JZzmZYjDOM2-r4-YobzDg2Tt-_GiYiIHPN6YFYs9MwJgiyJJGJ5VcgQFGhiYf595H1PAUva3rfTiDJwN1zrxui4FBtSgGfLL7Dy85rBwI1qhfGpKzRy4zPya2IDw7bLMv71dvOw2_Uiie_0THbjDKB_26pFNMr28cJdCaQLC5cIZf_GuuBgTIAfsE4PPe9EKcwsm5OFmF6BE6mPuOHCAm1n6fcIUO88reucDiIIrCa0U5g9_xinFYwksfgZiRY8FWGOexQ1NxDPfuDi_RlkR9Jxy_CgZk2wjN1JB7qU0conqfaRXN3Gsz4pbjOia54UWpAt8iqOwbohDscmK6ShAX0v4X_poQKnf6yy_t5FaNIHfM';
+            req2.setHeader('Authorization', 'Bearer '+token2);
+            req2.setHeader('Content-Type', 'application/json');
+            req2.setHeader('X-locale', 'en_US');
+            
+            
+            String jsonBody2 = '{"addressesToValidate":[' +
+                '{"address":{' +
+                    '"streetLines":["' + streetLines + '"],' +
+                    '"city":"' + city + '",' +
+                    '"postalCode":"' + postalCode + '",' +
+                    '"countryCode":"' + countryCode + '"' +
+                '}}]}';
+            
+            System.debug('JSON Body: ' + jsonBody2);
+            
+            req.setBody(jsonBody2);
+                
+            Http htp2 = new Http();
+            HttpResponse res2 = new HttpResponse();
+            res2=htp2.send(req);
+            
+            system.debug('>>>>response body'+res2.getStatuscode());
+            system.debug('>>>>response body'+res2.getBody());
+            
+            Map<String , Object> response1 = (Map<String , Object>) JSON.deserializeuntyped(res2.getBody());
+        
+            Map<String , Object> output1 = (Map<String , Object>)response1.get('output');
+            
+            List<Object> resolvedAddresses1 = (List<Object>) output1.get('resolvedAddresses'); 
+            Map<String , Object> resolvedAddress1 = (Map<String , Object>)resolvedAddresses1[0];
+            String classification1 = String.valueOf(resolvedAddress1.get('classification'));
+            
+            if(classification1 != 'UNKNOWN'){
+                sourceAdd = true;
+            }
+            
+            
+            //****************************************************************************************************************************************
+            //
+            if(sourceAdd == true && destAdd == false){
+                con.Status__c = 'Fail - Destination Address is not valid';
+                System.enqueueJob(new FedexQueueable(con.Id));
+            }
+            else if(sourceAdd == false && destAdd == true){
+                con.Status__c = 'Fail - Source Address is not valid';
+                System.enqueueJob(new FedexQueueable(con.Id));
+            }
+            else if(sourceAdd == true && destAdd == true){
+                con.Status__c = 'Success';
+                System.enqueueJob(new FedexQueueable(con.Id));
+            }
+            else{
+                con.Status__c = 'Fail - Source and Destination is not valid';
+                System.enqueueJob(new FedexQueueable(con.Id));
+            }
+            
+            consignmentsToUpdate.add(con);
+        }
+        
+        Update consignmentsToUpdate;
+        
+    }
+}
+
+
+==============================================================================================================
+
+public class FedexQueueable implements Queueable {
+    Id consignmentIds;
+    public FedexQueueable(Id consignmentIds){
+        this.consignmentIds = consignmentIds;
+    }
+    
+    public void execute(QueueableContext context) {
+    	List<Consignment__c> newConsignmentList = [SELECT Id, Destination_Street_Address__c, Consignment_Weight__c, Status__c, Source_Street_Address__c, Source_city__c, Source_Country_Code__c, Destination_city__c, Destination_Country_Code__c,Source_Postal_Code__c, Destination_Postal_Code__c FROM Consignment__c Where Id = :consignmentIds];
+        System.debug('Enter into api--');
+
+        List<Delivery_method__c> deliveryMethodList = new List<Delivery_method__c>();
+        
+        for(Consignment__c con : newConsignmentList){
+            HttpRequest req = new HttpRequest();
+            req.setEndpoint('https://apis-sandbox.fedex.com/rate/v1/rates/quotes');
+            req.setMethod('POST');
+            //Authentication || Authorization
+            String token = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzY29wZSI6WyJDWFMtVFAiXSwiUGF5bG9hZCI6eyJjbGllbnRJZGVudGl0eSI6eyJjbGllbnRLZXkiOiJsNzhkMzQ4Y2ZkNjg0NjRhYzNiMDkxZmNhNzhjM2UyZDFiIn0sImF1dGhlbnRpY2F0aW9uUmVhbG0iOiJDTUFDIiwiYWRkaXRpb25hbElkZW50aXR5Ijp7InRpbWVTdGFtcCI6IjA3LU5vdi0yMDI0IDAxOjMwOjEyIEVTVCIsImdyYW50X3R5cGUiOiJjbGllbnRfY3JlZGVudGlhbHMiLCJhcGltb2RlIjoiU2FuZGJveCIsImN4c0lzcyI6Imh0dHBzOi8vY3hzYXV0aHNlcnZlci1zdGFnaW5nLmFwcC5wYWFzLmZlZGV4LmNvbS90b2tlbi9vYXV0aDIifSwicGVyc29uYVR5cGUiOiJEaXJlY3RJbnRlZ3JhdG9yX0IyQiJ9LCJleHAiOjE3MzA5NjQ2MTIsImp0aSI6Ijc1ZTFiZDI0LTJiZTUtNDczMi1iZjAxLTdlMjAyMWVhOTIyNiJ9.CByiW1vu4vUBji1JAqdMQol8WQHWutOSnqrEFAHXxCKzj6M0WI8DESyc2wGW0t2D56AzkQAi-sVFWKpyuTUq6v8kn-GPLrGSoblFPqiR6Yt4VY7b0auCkK18CzcEokx36Wv41j9_eeOOngd346RQ0sqcvVIMTqdI8Ig9NLf-f4ueDC_qy_CarR-G8xI9_kMXMTHmpGTXhYcYAQgWKFJu1kY-529VvQzW8w4OuaL97Ih5f2aLzEi6f5fJ82lTrhIH8il8zI8z1gfmAPDul-0qeESP3xKOUqeoGdJt5be0514UltOPSwxGgQR6S7Iq81JZzmZYjDOM2-r4-YobzDg2Tt-_GiYiIHPN6YFYs9MwJgiyJJGJ5VcgQFGhiYf595H1PAUva3rfTiDJwN1zrxui4FBtSgGfLL7Dy85rBwI1qhfGpKzRy4zPya2IDw7bLMv71dvOw2_Uiie_0THbjDKB_26pFNMr28cJdCaQLC5cIZf_GuuBgTIAfsE4PPe9EKcwsm5OFmF6BE6mPuOHCAm1n6fcIUO88reucDiIIrCa0U5g9_xinFYwksfgZiRY8FWGOexQ1NxDPfuDi_RlkR9Jxy_CgZk2wjN1JB7qU0conqfaRXN3Gsz4pbjOia54UWpAt8iqOwbohDscmK6ShAX0v4X_poQKnf6yy_t5FaNIHfM';
+            req.setHeader('Authorization', 'Bearer '+token);
+            req.setHeader('Content-Type', 'application/json');
+            req.setHeader('X-locale', 'en_US');
+            
+            
+            String accountNumber = '740561073';
+            String shipperPostalCode = con.Source_Postal_Code__c;
+            String recipientPostalCode = con.Destination_Postal_Code__c;
+            String countryCode = 'US';
+            String weightUnits = 'LB';
+            Decimal weightValue = (Decimal)con.Consignment_Weight__c;
+            
+            String jsonBody = '{' +
+                '"accountNumber": {' +
+                    '"value": "' + accountNumber + '"' +
+                '},' +
+                '"requestedShipment": {' +
+                    '"shipper": {' +
+                        '"address": {' +
+                            '"postalCode": ' + shipperPostalCode + ',' +
+                            '"countryCode": "' + countryCode + '"' +
+                        '}' +
+                    '},' +
+                    '"recipient": {' +
+                        '"address": {' +
+                            '"postalCode": ' + recipientPostalCode + ',' +
+                            '"countryCode": "' + countryCode + '"' +
+                        '}' +
+                    '},' +
+                    '"pickupType": "DROPOFF_AT_FEDEX_LOCATION",' +
+                    '"serviceType": "PRIORITY_OVERNIGHT",' +
+                    '"packagingType": "FEDEX_ENVELOPE",' +
+                    '"rateRequestType": [' +
+                        '"LIST",' +
+                        '"ACCOUNT"' +
+                    '],' +
+                    '"requestedPackageLineItems": [' +
+                        '{' +
+                            '"weight": {' +
+                                '"units": "' + weightUnits + '",' +
+                                '"value": ' + String.valueOf(weightValue) +
+                            '}' +
+                        '}' +
+                    ']' +
+                '}' +
+            '}';
+            
+            System.debug('JSON Body: ' + jsonBody);
+            
+            req.setBody(jsonBody);
+            
+            Http htp=new Http();
+            HttpResponse res=new HttpResponse();
+            res=htp.send(req);
+            
+            system.debug('>>>>response body'+res.getStatuscode());
+            system.debug('>>>>response body'+res.getBody());
+
+            
+            
+            
+            Map<String, Object> parsedResponse = (Map<String, Object>) JSON.deserializeUntyped(res.getBody());
+
+            Map<String, Object> output = (Map<String, Object>) parsedResponse.get('output');
+            List<Object> rateReplyDetails = (List<Object>) output.get('rateReplyDetails');
+            
+            // Access the first rateReplyDetail directly (assuming structure/order is predictable)
+            Map<String, Object> rateReplyDetail = (Map<String, Object>) rateReplyDetails[0];
+            String serviceName = (String) rateReplyDetail.get('serviceName');
+            String serviceType = (String) rateReplyDetail.get('serviceType');
+            
+            // Get the ratedShipmentDetails list and fetch the "ACCOUNT" rateType details directly
+            List<Object> ratedShipmentDetails = (List<Object>) rateReplyDetail.get('ratedShipmentDetails');
+            Map<String, Object> accountRateDetail = (Map<String, Object>) ratedShipmentDetails[1]; // Assuming the "ACCOUNT" rateType is always at index 1
+            Decimal totalNetCharge = (Decimal) accountRateDetail.get('totalNetCharge');
+            
+            System.debug('Service Name: ' + serviceName);
+            System.debug('Service Type: ' + serviceType);
+            System.debug('Total Net Charge: ' + totalNetCharge);
+			
+            Delivery_method__c dm = new Delivery_method__c();
+            dm.ServiceName__c = serviceName;
+            dm.ServiceType__c = serviceType;
+            dm.TotalNetCharges__c = String.valueOf(totalNetCharge);
+            dm.Consignment__c = con.Id;
+            
+            deliveryMethodList.add(dm);
+            
+        }
+        
+        Insert deliveryMethodList;
+    }
+}
