@@ -1,0 +1,322 @@
+public class Tet23Oct_TriggerHelperClass {
+    public static void point2(List<OpportunityLineItem> oliRecords){
+        System.debug('oliRecords--'+oliRecords);
+        
+        List<Warehouse__c> warehouseList = [Select Id , Name From Warehouse__c ];
+        List<Inventory__c> inventoryList = [Select Id , Name , Warehouse__c , Quantity__c , Product__c From Inventory__c];
+        
+        List<Inventory__c> inventoryToUpdate = new List<Inventory__c>();
+        
+        Map<ID,List<Inventory__c>> mapOfWarehouseAndInventory = new Map<ID,List<Inventory__c>>();
+        
+        for(Inventory__c inv : inventoryList){
+            if(! mapOfWarehouseAndInventory.containsKey(inv.Warehouse__c)){
+                mapOfWarehouseAndInventory.put(inv.Warehouse__c , new List<Inventory__c>{inv});
+            }else{
+                mapOfWarehouseAndInventory.get(inv.Warehouse__c).add(inv);
+            }
+        }
+        System.debug('mapOfWarehouseAndInventory'+mapOfWarehouseAndInventory);
+        
+        for(OpportunityLineItem oli: oliRecords){
+            System.debug('oli--'+oli);
+            if(oli.Warehouse__c != null){
+                List<Inventory__c> inventories = mapOfWarehouseAndInventory.get(oli.Warehouse__c);
+                
+                for(Inventory__c inv : inventories){
+                    if(inv.Product__c == oli.Product2Id ){
+                        if(inv.Quantity__c - oli.Quantity < 0 ){
+                            oli.addError('Warehouse does not have sufficient quantity');
+                        }
+                        else{
+                            inv.Quantity__c = inv.Quantity__c - oli.Quantity;
+                            inventoryToUpdate.add(inv);
+                        }
+                        
+                    }
+                    
+                }
+                
+            }
+        }
+        
+        System.debug('inventoryToUpdate--'+inventoryToUpdate);
+        update inventoryToUpdate;
+        
+    }
+
+    
+    public static void point3(List<Order> newOrders){
+        Map<Id, Opportunity> opportunityMap = new Map<Id, Opportunity>();
+        List<OrderItem> orderLineItems = new List<OrderItem>();
+
+        for (Order ord : newOrders) {
+            if (ord.OpportunityId != null) {
+                opportunityMap.put(ord.OpportunityId, null);
+            }
+        }
+
+        if (!opportunityMap.isEmpty()) {
+            opportunityMap.putAll([SELECT Id, (SELECT Product2Id, Quantity, Warehouse__c FROM OpportunityLineItems) 
+                                   FROM Opportunity 
+                                   WHERE Id IN :opportunityMap.keySet()]);
+        }
+        
+        String pricebookId = [SELECT Id, Name FROM Pricebook2 Where Name = 'Standard Price Book'].Id;
+
+        for (Order ord : newOrders) {
+            Opportunity opp = opportunityMap.get(ord.OpportunityId);
+            if (opp != null) {
+                for (OpportunityLineItem oli : opp.OpportunityLineItems) {
+                    OrderItem oiRecord = new OrderItem(
+                        OrderId = ord.Id,
+                        Product2Id = oli.Product2Id,
+                        Quantity = oli.Quantity,
+                        Warehouse__c = oli.Warehouse__c,
+                        Status__c = (oli.Warehouse__c != null) ? 'Completed' : 'Pending'
+                    );
+                    orderLineItems.add(oiRecord);
+                }
+            }
+        }
+
+        if (!orderLineItems.isEmpty()) {
+            insert orderLineItems;
+        }
+
+        Map<Id , List<OrderItem>> mapOfOrderIdAndOrderItem = new Map<Id , List<OrderItem>>();
+        List<OrderItem> orderItemList = [SELECT Id , OrderId, Status__c FROM OrderItem ];
+        
+        for(OrderItem ord : orderItemList){
+            if(! mapOfOrderIdAndOrderItem.containsKey(ord.OrderId)){
+                mapOfOrderIdAndOrderItem.put(ord.OrderId , new List<OrderItem>{ord});
+            }else{
+                mapOfOrderIdAndOrderItem.get(ord.OrderId).add(ord);
+            }
+        }
+        
+        
+        for (Order ord : newOrders) {
+            Boolean allCompleted = true;
+
+            for (OrderItem oli : mapOfOrderIdAndOrderItem.get(ord.Id)) {
+                if (oli.Status__c != 'Completed') {
+                    allCompleted = false;
+                    break;
+                }
+            }
+
+            if (allCompleted) {
+                ord.Status = 'Completed';
+            } else {
+                ord.Status = 'Pending';
+            }
+        }
+
+        update newOrders;
+    }
+    
+    
+    /*public static void point4(List<OrderItem> oiList ){
+        Set<Id> orderIds = new Set<Id>();
+        for(OrderItem oi : oiList){
+            orderIds.add(oi.OrderId);
+        }
+        
+        List<Order> listOfOrder = [SELECT Id, Status__c , (Select Id , Status__c From OrderItems ) FROM Order Where Id In :orderIds];
+       
+        Map<ID,Order> mapOfOrderIdAndOrder = new Map<ID,Order>();
+        
+        for(Order ord : listOfOrder){
+            mapOfOrderIdAndOrder.put(ord.Id , ord);
+        }
+        System.debug('mapOfOrderIdAndOrder--'+mapOfOrderIdAndOrder);
+        
+        
+        
+        List<Order> orderListToUpdate = new List<Order>();
+        
+        for(OrderItem oi : oiList){
+            Boolean allCompleted = true;
+            for(OrderItem allOi : mapOfOrderIdAndOrder.get(oi.OrderId).OrderItems){
+                if(allOi.Status__c != 'Completed' && allOi.Status__c != 'Shipped'){
+                    allCompleted = false;
+                }
+            }
+            
+            if(allCompleted){
+                Order orderRec = mapOfOrderIdAndOrder.get(oi.OrderId);
+                orderRec.Status__c = 'Completed';
+                orderListToUpdate.add(orderRec);
+            }
+            else{
+                Order orderRec = mapOfOrderIdAndOrder.get(oi.OrderId);
+                orderRec.Status__c = 'Pending';
+                orderListToUpdate.add(orderRec);
+            }
+        }
+         
+        System.debug('orderListToUpdate--'+orderListToUpdate);
+        if(! orderListToUpdate.isEmpty()){
+            Update orderListToUpdate;
+        }
+    }
+    
+    
+    public static void point5(List<Order> newOrderList , Map<Id , Order> oldOrderMap){
+        
+        
+        List<Order> listOfOrder = [SELECT Id, Status__c , (Select Id , Status__c From OrderItems ) FROM Order Where Id In :newOrderList];
+       
+        Map<ID,Order> mapOfOrderIdAndOrder = new Map<ID,Order>();
+        
+        for(Order ord : listOfOrder){
+            mapOfOrderIdAndOrder.put(ord.Id , ord);
+        }
+        System.debug('mapOfOrderIdAndOrder--'+mapOfOrderIdAndOrder);
+        
+        List<OrderItem> orderItemToUpdate = new List<OrderItem>();
+        
+        for(Order ord : newOrderList){
+            if(oldOrderMap.get(ord.Id).Status__c == 'Completed' && ord.Status__c == 'Shipped'){
+                for(OrderItem oi : mapOfOrderIdAndOrder.get(ord.Id).OrderItems){
+                    oi.Status__c = 'Shipped';
+                    orderItemToUpdate.add(oi);
+                }
+            }
+        }
+		
+		System.debug('orderItemToUpdate--'+orderItemToUpdate);        
+        if(! orderItemToUpdate.isEmpty()){
+            Update orderItemToUpdate;
+        }
+    }*/
+    
+    public static void point4(List<OrderItem> oiList) {
+        Set<Id> orderIds = new Set<Id>();
+        for (OrderItem oi : oiList) {
+            orderIds.add(oi.OrderId);
+        }
+
+        List<Order> orders = [
+            SELECT Id, Status__c, 
+                   (SELECT Id, Status__c FROM OrderItems)
+            FROM Order
+            WHERE Id IN :orderIds
+        ];
+
+        List<Order> ordersToUpdate = new List<Order>();
+
+        for (Order order : orders) {
+            Boolean allCompleted = true;
+            for (OrderItem oi : order.OrderItems) {
+                if (oi.Status__c != 'Completed' && oi.Status__c != 'Shipped') {
+                    allCompleted = false;
+                    break;
+                }
+            }
+            if (allCompleted) {
+                if (order.Status__c != 'Completed' && order.Status__c != 'Shipped') {
+                    order.Status__c = 'Completed';
+                    ordersToUpdate.add(order);
+                }
+            } else {
+                if (order.Status__c != 'Pending') {
+                    order.Status__c = 'Pending';
+                    ordersToUpdate.add(order);
+                }
+            }
+        }
+
+        if (!ordersToUpdate.isEmpty()) {
+            update ordersToUpdate;
+        }
+    }
+
+    public static void point5(List<Order> newOrders, Map<Id, Order> oldOrders) {
+        List<OrderItem> orderItemsToUpdate = new List<OrderItem>();
+
+        for (Order order : newOrders) {
+            if (oldOrders.containsKey(order.Id) && 
+                oldOrders.get(order.Id).Status__c == 'Completed' && 
+                order.Status__c == 'Shipped') {
+
+                List<OrderItem> orderItems = [
+                    SELECT Id, Status__c 
+                    FROM OrderItem 
+                    WHERE OrderId = :order.Id
+                ];
+
+                for (OrderItem oi : orderItems) {
+                    if (oi.Status__c != 'Shipped') {
+                        oi.Status__c = 'Shipped';
+                        orderItemsToUpdate.add(oi);
+                    }
+                }
+            }
+            else if(oldOrders.get(order.Id).Status__c == 'Shipped'){
+                order.addError('once shipped  cannot change the status');
+            }
+            else if(oldOrders.get(order.Id).Status__c == null){
+                continue;
+            }
+            else{
+                order.addError('status can only be changed to Shipped once all Order items are marked as Completed');
+            }
+        }
+
+        if (!orderItemsToUpdate.isEmpty()) {
+            update orderItemsToUpdate;
+        }
+    }
+    
+    public static void point6val3(List<Purchase_Order__c> poList){
+        List<Id> orderIds = new List<Id>();
+        for(Purchase_Order__c po : poList){
+            orderIds.add(po.Order__c);
+        }
+        
+        Map<Id , Order> mapOfOrderIdAndOrder = new Map<Id , Order>([Select Id ,Status__c ,(Select Id , Status__c,Warehouse__c,Product2Id,Quantity From OrderItems Where Warehouse__c = null) From Order Where Id In :orderIds]);
+        
+        List<Purchase_Order_Item__c> insertPurchaseOrderItemList = new List<Purchase_Order_Item__c>();
+        List<Purchase_Order__c> updatePurchaseOrder = new List<Purchase_Order__c>();
+        for(Purchase_Order__c po : poList){
+            if(po.Order__c != null){
+                if(mapOfOrderIdAndOrder.get(po.Order__c).Status__c == 'Completed' || mapOfOrderIdAndOrder.get(po.Order__c).Status__c == 'Shipped'){
+                    po.addError('purchaseorder cannot be created for orders with a status of Completed or Shipped.');
+                }
+                else{
+                    if(mapOfOrderIdAndOrder.get(po.Order__c).OrderItems.size() >= 1){
+                        
+                        updatePurchaseOrder.add(po);
+                        for(OrderItem oi : mapOfOrderIdAndOrder.get(po.Order__c).OrderItems){
+                            Purchase_Order_Item__c poi = new Purchase_Order_Item__c();
+                            poi.Purchase_Order__c = po.Id;
+                            poi.Quantity__c = oi.Quantity;
+                            poi.Status__c = 'Pending';
+                            poi.Product__c = oi.Product2Id;
+                            insertPurchaseOrderItemList.add(poi);
+                        }
+                    }
+                }
+                
+            }
+        }
+        
+        if(! insertPurchaseOrderItemList.isEmpty()){
+            insert insertPurchaseOrderItemList;
+        }
+        
+        List<Purchase_Order__c> PurchaseOrders = new List<Purchase_Order__c>();
+        for(Purchase_Order__c po : [Select Id , Status__c From Purchase_Order__c Where Id In :updatePurchaseOrder]){
+            po.Status__c = 'Pending';
+            PurchaseOrders.add(po);
+        }
+        
+        update PurchaseOrders;
+        
+        
+    }
+    
+    
+}

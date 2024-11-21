@@ -1,0 +1,129 @@
+trigger PurchaseOrderTrigger on Purchase_Order__c (after insert) {
+    if(Trigger.isAfter){
+        if(Trigger.isInsert){
+            Tet23Oct_TriggerHelperClass.point6val3(Trigger.new);
+        }
+    }
+}
+
+
+trigger OpportunityLineItemTrigger on OpportunityLineItem (before insert) {
+    if(Trigger.isBefore){
+        if(Trigger.isInsert){
+            Tet23Oct_TriggerHelperClass.point2(Trigger.New);
+        }
+    }
+}
+
+trigger OrderItemTrigger on OrderItem (before insert , after Update) {
+    if(Trigger.isBefore){
+        if(Trigger.isInsert){
+            
+            // Map to store related OpportunityLineItems by OpportunityId
+            Map<Id, Set<Id>> oppProductMap = new Map<Id, Set<Id>>();
+            
+            // Map to hold Order Items by OrderId to check for duplicates
+            Map<Id, Set<Id>> orderProductMap = new Map<Id, Set<Id>>();
+            
+            // Collect Order Ids and Opportunity Ids from OrderItems
+            Set<Id> orderIds = new Set<Id>();
+            for (OrderItem oi : Trigger.new) {
+                if (oi.OrderId != null) {
+                    orderIds.add(oi.OrderId);
+                }
+            }
+            
+            // Query related Orders to fetch Opportunity Ids
+            Map<Id, Id> orderToOpportunityMap = new Map<Id, Id>();
+            if (!orderIds.isEmpty()) {
+                for (Order ord : [
+                    SELECT Id, OpportunityId 
+                    FROM Order 
+                    WHERE Id IN :orderIds
+                ]) {
+                    if (ord.OpportunityId != null) {
+                        orderToOpportunityMap.put(ord.Id, ord.OpportunityId);
+                    }
+                }
+            }
+            
+            // Collect OpportunityIds and query Opportunity Line Items
+            Set<Id> opportunityIds = new Set<Id>(orderToOpportunityMap.values());
+            if (!opportunityIds.isEmpty()) {
+                for (OpportunityLineItem oli : [
+                    SELECT OpportunityId, Product2Id 
+                    FROM OpportunityLineItem 
+                    WHERE OpportunityId IN :opportunityIds
+                ]) {
+                    if (!oppProductMap.containsKey(oli.OpportunityId)) {
+                        oppProductMap.put(oli.OpportunityId, new Set<Id>());
+                    }
+                    oppProductMap.get(oli.OpportunityId).add(oli.Product2Id);
+                }
+            }
+            
+            for (OrderItem oi : Trigger.new) {
+                oi.Status__c = 'Pending';
+                if (oi.OrderId == null || oi.Product2Id == null) {
+                    continue; 
+                }
+                
+                Id opportunityId = orderToOpportunityMap.get(oi.OrderId);
+                if (opportunityId != null) {
+                    Set<Id> allowedProducts = oppProductMap.get(opportunityId);
+                    if (allowedProducts == null || !allowedProducts.contains(oi.Product2Id)) {
+                        oi.addError('Product is not present on the related Opportunity.');
+                    }
+                }
+                
+                if (!orderProductMap.containsKey(oi.OrderId)) {
+                    orderProductMap.put(oi.OrderId, new Set<Id>());
+                }
+                if (orderProductMap.get(oi.OrderId).contains(oi.Product2Id)) {
+                    oi.addError('Order line item for this product already exists on this order.');
+                } else {
+                    orderProductMap.get(oi.OrderId).add(oi.Product2Id);
+                }
+            }
+        }
+
+        
+    }
+    else if(Trigger.isAfter){
+        if(Trigger.isInsert){
+            
+        }
+        else if(Trigger.isUpdate){
+            Tet23Oct_TriggerHelperClass.point4(Trigger.new);
+        }
+    }
+}
+
+
+trigger OrderTrigger on Order (before update , after insert , after update) {
+    if(Trigger.isBefore){
+        
+        if(Trigger.isUpdate){
+            for (Order ord : Trigger.new) {
+                Order oldOrder = Trigger.oldMap.get(ord.Id);
+        
+                if (ord.Status__c == 'Completed' || ord.Status__c == 'Pending') {
+                    if(oldOrder.Status__c != null){
+                        if (ord.Status__c != oldOrder.Status__c) {
+                            ord.addError('You cannot manually change the Order Status to "Completed" or "Pending".');
+                        }
+                    }
+                    
+                }
+            }
+        }
+    }
+    else if(Trigger.isAfter){
+        if(Trigger.isInsert ){
+            //Tet23Oct_TriggerHelperClass.point3(Trigger.new);
+        }
+        else if(Trigger.isUpdate){
+            Tet23Oct_TriggerHelperClass.point5(Trigger.new , Trigger.OldMap);
+        }
+    }
+}
